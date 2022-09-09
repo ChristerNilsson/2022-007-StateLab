@@ -215,7 +215,7 @@ class SClock extends State
 		buttons.new.visible = @paused
 		super key
 
-# =>SClock ok => red white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
+# =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
 class SEditor extends State
 	constructor : (@name) ->
 		super()
@@ -231,7 +231,7 @@ class SEditor extends State
 
 		@hcpSwap = 1
 
-		arr = '=>SClock ok => red white green reflection bonus hcp a b c d e f =>SEditor swap'.split ' '
+		arr = '=>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap'.split ' '
 		for i in range 6
 			letter = 'abcdef'[i]
 			for j in range 6
@@ -269,10 +269,10 @@ class SEditor extends State
 		buttons.white.text = @compact()
 		@handicap()
 		if @hcp == 0
-			buttons.red.text   = ''
+			buttons.orange.text   = ''
 			buttons.green.text = ''
 		else
-			buttons.red.text   = prettyPair @players[0][0], @players[0][1]
+			buttons.orange.text   = prettyPair @players[0][0], @players[0][1]
 			buttons.green.text = prettyPair @players[1][0], @players[1][1]
 
 	compact : ->
@@ -351,7 +351,7 @@ setup = ->
 	# Edit Page
 	buttons.swap       = new Button 'swap', 0.33*w, 0.93*h, 0.22*w, 0.08*h
 	buttons.ok         = new Button 'ok',   0.67*w, 0.93*h, 0.22*w, 0.08*h
-	buttons.red        = new BColor 'red',   w/2, 0.03*h
+	buttons.orange     = new BColor 'orange',w/2, 0.03*h
 	buttons.white      = new BColor 'white', w/2, 0.09*h
 	buttons.green      = new BColor 'green', w/2, 0.15*h
 	buttons.reflection = new BDead 'reflection', 0.25*w, 0.21*h
