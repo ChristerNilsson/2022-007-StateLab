@@ -11,12 +11,50 @@ currState = null
 
 diag = 0 
 
+trunc3 = (x) -> Math.trunc(x*1000)/1000
+
+createState = (key,klass) -> states[key] = new klass key
+
+pretty = (tot) ->
+	s = tot % 60
+	tot = (tot - s) / 60
+	m = tot % 60
+	tot = (tot - m) / 60
+	h = tot % 60
+	header = ''
+	if trunc3(h)>0 then header += trunc3(h) + 'h'
+	if trunc3(m)>0 then header += trunc3(m) + 'm'
+	if trunc3(s)>0 then header += trunc3(s) + 's'
+	header
+
+prettyPair = (a,b) ->
+	separator = if pretty(b) != '' then ' + ' else ''
+	pretty(a) + separator + pretty(b)
+
+d2 = (x) ->
+	x = Math.trunc x
+	if x < 10 then '0'+x else x
+console.log d2(3), '03'
+
+hms = (x) ->
+	orig = x
+	s = x %% 60
+	x = x // 60
+	m = x %% 60
+	x = x // 60
+	h = x
+	if orig < 10 then s = Math.trunc(s*10)/10 
+	console.log [h,m,s]
+	[h,m,s] 
+console.log hms(180), [0,3,0]
+console.log hms(180.5), [0,3,0.5]
+
 class Button
 	constructor : (@text,@x,@y,@w,@h,@bg='white',@fg='black') ->
 		@visible = true
 	draw : (disabled) ->
 		#if disabled then fill 'lightgray' else fill @bg
-		if @visible 
+		if @visible
 			fill @bg
 			rect @x,@y,@w,@h
 			textSize 0.04*diag
@@ -24,18 +62,21 @@ class Button
 			text @text,@x,@y
 	inside : -> -@w/2 <= mouseX-@x <= @w/2 and -@h/2 <= mouseY-@y <= @h/2
 
-class ImageButton extends Button
+class BImage extends Button
 	constructor : (@image,x,y,w,h) -> super '',x,y,w,h
 	draw :  -> if @image then image @image,(width-@w)/2,(height-@h)/2,@w,@h
 
-class RotateButton extends Button
+class BRotate extends Button
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> super '',x,y,w,h,bg,fg
 
 	draw : ->
-		secs = states.Editor.clocks[@player]
-		if secs == 0 then fill 'gray'
-		[h,m,s] = hms Math.trunc secs
-		ss = if h >= 1 then d2(h) + ':' + d2(m) else d2(m) + ':' + d2(s)
+		secs = states.SEditor.clocks[@player]
+		#if secs == 0 then fill 'gray'
+		[h,m,s] = hms secs
+		if secs < 10 
+			ss = if h >= 1 then h + ':' + d2(m) else m + ':' + s.toFixed(1)
+		else
+			ss = if h >= 1 then h + ':' + d2(m) else m + ':' + d2(s)
 
 		fill @bg
 		rect @x,@y,@w,@h
@@ -47,25 +88,26 @@ class RotateButton extends Button
 		fill @fg
 		text ss,0,0.017*height
 		textSize 0.05*diag
-		text '+' + round3(states.Editor.bonuses[@player])+'s',0,0.15*height
-		if states.Editor.clocks[@player]<=0 then @bg = 'red' #text 'Out of time',0,-0.15*height
+		if states.SEditor.bonuses[@player] > 0
+			text '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,0.15*height
+		if states.SEditor.clocks[@player]<=0 then @bg = 'red'
 		pop()
 
-class EditButton extends Button
+class BEdit extends Button
 	constructor : (text,x,y,w,h,fg='gray') -> super text,x,y,w,h,'black',fg
 	draw : ->
 		textSize 0.05*diag
 		fill @fg
 		text @text,@x,@y
 
-class DeadButton extends Button
+class BDead extends Button
 	constructor : (text,x,y,fg='lightgray') -> super text,x,y,0,0,'black',fg
 	draw : ->
 		textSize 0.04*diag
 		fill @fg
 		text @text,@x,@y
 
-class ColorButton extends Button
+class BColor extends Button
 	constructor : (@fg,x,y) -> super '',x,y,0,0
 	draw : ->
 		push()
@@ -92,10 +134,10 @@ class State
 	patch : ->
 	draw : ->
 
-class ClockState extends State
+class SClock extends State
 	constructor : (@name) ->
 		super()
-		@createTrans 'qr=>ClockState pause=>ClockState left=>ClockState right=>ClockState new=>Editor' #  play=>ClockState
+		@createTrans 'qr=>SClock pause=>SClock left=>SClock right=>SClock new=>SEditor' #  play=>SClock
 		@paused = true
 		@player = -1
 		buttons.pause.visible = false
@@ -103,9 +145,9 @@ class ClockState extends State
 	uppdatera : ->
 		console.log 'uppdatera'
 		if  @paused then return
-		if states.Editor.clocks[@player] > 0 then states.Editor.clocks[@player] -= 1/60
-		if states.Editor.clocks[@player] <= 0 
-			states.Editor.clocks[@player] = 0
+		if states.SEditor.clocks[@player] > 0 then states.SEditor.clocks[@player] -= 1/60
+		if states.SEditor.clocks[@player] <= 0 
+			states.SEditor.clocks[@player] = 0
 			timeout = true
 
 	message : (key) ->
@@ -114,20 +156,24 @@ class ClockState extends State
 			resizeCanvas windowWidth, windowHeight
 		if key == 'left'
 			if timeout then return
-			if @player == 0 # and not timeout[0]
-				states.Editor.clocks[0] += states.Editor.bonuses[0]
+			if @player == 0
+				states.SEditor.clocks[0] += states.SEditor.bonuses[0]
 			@paused = false
 			@player = 1
 			buttons.left.fg = 'black'
 			buttons.right.fg = 'white'
 		if key == 'pause'
 			@paused = true
-			buttons.left.fg = 'black'
-			buttons.right.fg = 'black'
+			if @player == 0
+				buttons.left.fg = 'lightgray'
+				buttons.right.fg = 'black'
+			else
+				buttons.left.fg = 'black'
+				buttons.right.fg = 'lightgray'
 		if key == 'right'
 			if timeout then return
-			if @player == 1 # and not timeout[1]
-				states.Editor.clocks[1] += states.Editor.bonuses[1]
+			if @player == 1
+				states.SEditor.clocks[1] += states.SEditor.bonuses[1]
 			@paused = false
 			@player = 0
 			buttons.left.fg = 'white'
@@ -137,7 +183,7 @@ class ClockState extends State
 		buttons.new.visible = @paused
 		super key
 
-class Editor extends State
+class SEditor extends State
 	constructor : (@name) ->
 		super()
 		@sums = [0,1+2,0,0,2,0]
@@ -150,19 +196,18 @@ class Editor extends State
 		buttons.white.text = '3m + 2s'
 
 		@hcpSwap = 1
-		arr = 'red white green reflection bonus hcp ok=>ClockState swap=>Editor'.split ' '
+		arr = 'red white green reflection bonus hcp ok=>SClock swap=>SEditor'.split ' '
 		for i in range 6
 			letter = 'abcdef'[i]
 			arr.push letter
 			for j in range 6
 				name = letter + j
-				arr.push name + '=>Editor'
+				arr.push name + '=>SEditor'
 		@createTrans arr.join ' '
 		console.log arr.join ' '
 
 	message : (key) ->
-		if key == 'swap'
-			@hcpSwap = -@hcpSwap
+
 		if key != 'swap' and key != 'ok'
 			buttons[key].fg = if buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
@@ -171,10 +216,18 @@ class Editor extends State
 			j = key[1]
 			number = factor * [1,2,4,8,15,30][j]
 			@sums[i] = if buttons[key].fg == 'gray' then @sums[i]-number else @sums[i]+number
+			buttons.ok.visible = @sums[0] + @sums[1] + @sums[2] > 0
+			buttons.swap.visible = @sums[5] > 0
+
+		if key == 'swap'
+			@hcpSwap = -@hcpSwap
+
 		if key == 'ok' 
 			timeout = false
-			buttons.left.fg = 'black'
-			buttons.right.fg = 'black'
+			buttons.left.fg = 'white'
+			buttons.right.fg = 'white'
+			buttons.left.bg = 'orange'
+			buttons.right.bg = 'green'
 		@uppdatera()
 		super key
 
@@ -185,8 +238,8 @@ class Editor extends State
 			buttons.red.text   = ''
 			buttons.green.text = ''
 		else
-			buttons.red.text   = pretty(@players[0][0]) + ' + ' + pretty(@players[0][1])
-			buttons.green.text = pretty(@players[1][0]) + ' + ' + pretty(@players[1][1])
+			buttons.red.text   = prettyPair @players[0][0], @players[0][1]
+			buttons.green.text = prettyPair @players[1][0], @players[1][1]
 
 	compact : ->
 		headers = 'h m s m s t'.split ' '
@@ -218,42 +271,12 @@ makeEditButtons = ->
 		xoff = xsize/2 + (width-6*xsize)/2
 		yoff = 0.33*height
 		shown='h m s m s elo'.split ' '
-		buttons[letter] = new DeadButton shown[i], xoff+xsize*i, 0.26*height 
+		buttons[letter] = new BDead shown[i], xoff+xsize*i, 0.26*height 
 		for j in range 6
 			number = [1,2,4,8,15,30][j]
 			name = letter + j
 			factor = if i==5 then HCP else 1
-			buttons[name] = new EditButton factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
-
-createState = (key,klass) -> states[key] = new klass key
-
-round3 = (x) -> Math.round(x*1000)/1000
-
-pretty = (tot) ->
-	s = tot % 60
-	tot = (tot - s) / 60
-	m = tot % 60
-	tot = (tot - m) / 60
-	h = tot % 60
-	header = ''
-	if h>0 then header += round3(h) + 'h'
-	if m>0 then header += round3(m) + 'm'
-	if s>0 then header += round3(s) + 's'
-	header
-
-d2 = (x) ->
-	x = Math.trunc x
-	if x < 10 then '0'+x else x
-console.log d2(3), '03'
-
-hms = (x) ->
-	s = x %% 60
-	x = x // 60
-	m = x %% 60
-	x = x // 60
-	h = x
-	[h,m,s]
-console.log hms(180), [0,3,0]
+			buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 ###################################
 
@@ -284,31 +307,31 @@ setup = ->
 
 	# Main Page
 	size = 0.12*h # qr
-	buttons.left    = new RotateButton    0.5*w, 0.22*h, w,     0.44*h, 180, 'orange', 'black', 0 # eg up
-	buttons.right   = new RotateButton    0.5*w, 0.78*h, w,     0.44*h,   0, 'green',  'black', 1 # eg down
+	buttons.left    = new BRotate    0.5*w, 0.22*h, w,     0.44*h, 180, 'orange', 'white', 0 # eg up
+	buttons.right   = new BRotate    0.5*w, 0.78*h, w,     0.44*h,   0, 'green',  'white', 1 # eg down
 	buttons.pause   = new Button 'pause', 0.25*(w-size), 0.50*h, (w-size)/2, size
 	buttons.new     = new Button 'new',   w-0.25*(w-size), 0.50*h, (w-size)/2, size
-	buttons.qr      = new ImageButton qr,0.5*w, 0.5*h, size, size
+	buttons.qr      = new BImage qr,0.5*w, 0.5*h, size, size
 	
 	# Edit Page
 	buttons.swap  = new Button 'swap', 0.33*w, 0.93*h, 0.22*w, 0.08*h
 	buttons.ok    = new Button 'ok',   0.67*w, 0.93*h, 0.22*w, 0.08*h
-	buttons.red   = new ColorButton 'red',   w/2, 0.03*h
-	buttons.white = new ColorButton 'white', w/2, 0.09*h
-	buttons.green = new ColorButton 'green', w/2, 0.15*h
-	buttons.reflection = new DeadButton 'reflection', 0.25*w, 0.21*h
-	buttons.bonus = new DeadButton 'bonus', 0.66*w, 0.21*h
-	buttons.hcp   = new DeadButton 'hcp', 0.92*w, 0.21*h
+	buttons.red   = new BColor 'red',   w/2, 0.03*h
+	buttons.white = new BColor 'white', w/2, 0.09*h
+	buttons.green = new BColor 'green', w/2, 0.15*h
+	buttons.reflection = new BDead 'reflection', 0.25*w, 0.21*h
+	buttons.bonus = new BDead 'bonus', 0.66*w, 0.21*h
+	buttons.hcp   = new BDead 'hcp', 0.92*w, 0.21*h
 
 	makeEditButtons()
-	createState 'ClockState', ClockState
-	createState 'Editor',     Editor
-	currState = states.ClockState
+	createState 'SClock', SClock
+	createState 'SEditor',     SEditor
+	currState = states.SClock
 
 draw = ->
 	background 'black'
 
-	states.ClockState.uppdatera()
+	states.SClock.uppdatera()
 
 	for key of currState.transitions
 		target = currState.transitions[key]
@@ -324,13 +347,13 @@ draw = ->
 
 	# text currState.name,0.5*width,0.03*height
 	# fill 'green'
-	# text round3(states.Editor.bonuses[0]),0.1*width,0.03*height
-	# text round3(states.Editor.clocks[0]),0.25*width,0.03*height
-	# text round3(states.Editor.clocks[1]),0.75*width,0.03*height
-	# text round3(states.Editor.bonuses[1]),0.9*width,0.03*height
+	# text round3(states.SEditor.bonuses[0]),0.1*width,0.03*height
+	# text round3(states.SEditor.clocks[0]),0.25*width,0.03*height
+	# text round3(states.SEditor.clocks[1]),0.75*width,0.03*height
+	# text round3(states.SEditor.bonuses[1]),0.9*width,0.03*height
 
-	# text states.ClockState.paused,0.3*width,0.025*height
-	# text states.ClockState.player,0.7*width,0.025*height
+	# text states.SClock.paused,0.3*width,0.025*height
+	# text states.SClock.player,0.7*width,0.025*height
 
 	currState.draw()
 
@@ -338,78 +361,6 @@ mouseClicked = ->
 	for key of currState.transitions
 		if currState.transitions[key] == undefined then continue
 		console.log key
-		if buttons[key].inside mouseX, mouseY 
+		if buttons[key].visible and buttons[key].inside mouseX, mouseY 
 			currState.message key
 			break
-
-### Grave yard ###
-# class LeftOrRight extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'qr left=>RightTicking right=>LeftTicking pause=>StartState'
-# 	draw : ->
-# 		buttons.left.fg = 'white'
-# 		buttons.right.fg = 'white'
-
-# class LeftTicking extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'qr right left=>RightTicking pause=>LeftPaused'
-# 	draw : ->
-# 		if not timeout[0] then states.Editor.clocks[0] -= 1/60
-# 		if states.Editor.clocks[0] <= 0 
-# 			states.Editor.clocks[0] = 0
-# 			timeout[0] = true
-# 		buttons.left.fg = 'white'
-# 		buttons.right.fg = 'black'
-# 		super()
-# 	message : (key) ->
-# 		if key == 'left'
-# 			if not timeout[0]
-# 				states.Editor.clocks[0] += states.Editor.bonuses[0]
-# 			buttons.left.fg = 'white'
-# 			buttons.right.fg = 'black'
-# 		super key
-
-# class RightTicking extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'qr left right=>LeftTicking pause=>RightPaused'
-# 	draw : ->
-# 		if not timeout[1] then states.Editor.clocks[1] -= 1/60
-# 		if states.Editor.clocks[1] <= 0 
-# 			states.Editor.clocks[1] = 0
-# 			timeout[1] = true
-# 		buttons.left.fg = 'black'
-# 		buttons.right.fg = 'white'
-# 		super()
-# 	message : (key) ->
-# 		if key == 'right'
-# 			if not timeout[1]
-# 				states.Editor.clocks[1] += states.Editor.bonuses[1]
-# 			buttons.left.fg = 'black'
-# 			buttons.right.fg = 'white'
-# 		super key
-
-# class LeftPaused extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'qr left right play=>LeftTicking new=>Editor'
-
-# class RightPaused extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'qr left right play=>RightTicking new=>Editor'
-
-# class WelcomeState extends State
-# 	constructor : (@name) ->
-# 		super()
-# 		@createTrans 'welcome=>StartState'
-# 	message : (key) ->
-# 		if key == 'welcome'
-# 			os = navigator.appVersion
-# 			ok = os.indexOf('Linux') >= 0 
-# 			console.log ok
-# 			#if ok then toggleFullScreen()
-# 		super key
-
