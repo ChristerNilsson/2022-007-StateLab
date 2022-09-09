@@ -11,6 +11,13 @@ currState = null
 
 diag = 0 
 
+toggleFullScreen = ->
+	doc = window.document
+	docEl = doc.documentElement
+	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
+	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
+		requestFullScreen.call docEl
+
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 
 createState = (key,klass) -> states[key] = new klass key
@@ -220,6 +227,8 @@ class SEditor extends State
 		buttons.b1.fg = 'yellow'
 		buttons.e1.fg = 'yellow'
 		buttons.white.text = '3m + 2s'
+		buttons.swap.visible = false
+
 		@hcpSwap = 1
 
 		arr = '=>SClock ok => red white green reflection bonus hcp a b c d e f =>SEditor swap'.split ' '
@@ -283,8 +292,8 @@ class SEditor extends State
 		@refl = HOUR * @sums[0] + MINUTE * @sums[1] + @sums[2] # sekunder
 		@bonus =                  MINUTE * @sums[3] + @sums[4] # sekunder
 		@players = []
-		@players[0] = [@refl*(1+@hcp), @bonus*(1+@hcp)]
-		@players[1] = [@refl*(1-@hcp), @bonus*(1-@hcp)]
+		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
+		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
 		@clocks  = [@players[0][0], @players[1][0]]
 		@bonuses = [@players[0][1], @players[1][1]]
 
@@ -295,7 +304,7 @@ makeEditButtons = ->
 		ysize = height/10
 		xoff = xsize/2 + (width-6*xsize)/2
 		yoff = 0.33*height
-		shown='H M S m s elo'.split ' '
+		shown='H M S m s t'.split ' '
 		buttons[letter] = new BDead shown[i], xoff+xsize*i, 0.26*height 
 		for j in range 6
 			number = [1,2,4,8,15,30][j]
