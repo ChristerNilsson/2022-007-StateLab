@@ -1,4 +1,4 @@
-HCP = 20
+HCP = 1
 HOUR = 3600
 MINUTE = 60
 
@@ -246,7 +246,7 @@ class SEditor extends State
 			buttons[key].fg = if buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
 			col = 'abcdef'.indexOf letter
-			factor = if col==5 then 20 else 1
+			factor = if col==5 then HCP else 1
 			j = key[1]
 			number = factor * [1,2,4,8,15,30][j]
 			@sums[col] = if buttons[key].fg == 'gray' then @sums[col]-number else @sums[col]+number

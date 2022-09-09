@@ -5,16 +5,14 @@
 * Only white texts are clickable.
 
 ## Handicap system.
-* Default is no handicap.
-* The handicap is based on ELO rating difference, with a maximum of 1200.
+* No handicap is default.
+* The handicap is based on 0/60 to 60/60.
 * The total time is the same, before and after the handicap.
-* Current steepness is 20. Contact me if you prefer another value.
+* If you want to relate ELO difference to sixtieths, use a separate table or formula, as there are several alternatives.
 
 ### Example:
-* You have decided on a game using 10m + 5s.
-* Select an ELO rating difference.
-* Using 120 (40+80), a tenth (120/1200) of the time will move to the other player.
-* The adjusted times will be 11m + 5.5s and 9m + 4.5s
+* You have decided on a game using 10m + 5s, and would like to give away 5m to the other player.
+* Using 5m/10m = 30/60, the adjusted times will be 15m + 7.5s and 5m + 2.5s
 
 ### How to enter numbers
 ```
@@ -36,7 +34,6 @@
 ..
 59 = 2 + 4 + 8 + 15 + 30
 
-Multiply with 20 using handicap
 ```
 
 ### The QR code
@@ -47,37 +44,15 @@ Multiply with 20 using handicap
 ### Definitions
 * reflection = the time you have left
 * bonus = time that will be added for every move. (Fischer System)
-* hcp = handicap. Expressed in ELO rating difference.
-* swap. When using handicap, swaps the times for the players.
+* hcp = handicap. Expressed in sixtieths (1/60)
+* swap = When using handicap, swaps the times for the players.
 * h = hour 0 .. 60
 * m = minute 0 .. 60
 * s = second 0 .. 60
-* elo = handicap 0 .. 1200
+* t = handicap 0 .. 60
 
 ### Repeat Game
 * Click **pause**
 * Click **new**
 * Click **ok**
 * Click one of the players.
-
-###
-Example table
-```
-The effect on 1h - 1h, using different handicaps.
- ELO difference 
-   0            1h - 1h
- 100           55m - 1h5m
- 200           50m - 1h10m
- 300           45m - 1h15m
- 400           40m - 1h20m
- 500           35m - 1h25m
- 600           30m - 1h30m
- 700           25m - 1h35m
- 800           20m - 1h40m
- 900           15m - 1h45m
-1000           10m - 1h50m
-1100            5m - 1h55m
-1200            0m - 2h
-
-Bonus times are also handicapped.
-```
