@@ -326,17 +326,18 @@ makeEditButtons = ->
 
 preload = -> qr = loadImage 'qr.png'
 
-windowResized = ->
-	#resizeCanvas windowWidth, windowHeight
-	resizeCanvas displayWidth, displayHeight
-	diag = sqrt width*width + height*height
+# windowResized = ->
+# 	#resizeCanvas windowWidth, windowHeight
+# 	resizeCanvas displayWidth, displayHeight
+# 	diag = sqrt width*width + height*height
 
 setup = ->
 	os = navigator.appVersion
 	console.log os
 	if os.indexOf('Linux') >= 0 # android/linux
 		#pixelDensity 3
-		createCanvas screen.width,screen.height
+		createCanvas 360,720
+#		createCanvas screen.width,screen.height
 		#createCanvas displaywidth,displayHeight
 	else
 		createCanvas window.innerWidth,window.innerHeight # Windows or Mac
@@ -398,7 +399,7 @@ draw = ->
 
 	# os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'D',5,5
+	ptext 'E',5,5
 	aspect screen.width, screen.height,5
 	aspect displayWidth, displayHeight,15
 	aspect innerWidth, innerHeight,10
