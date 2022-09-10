@@ -386,16 +386,16 @@ draw = ->
 
 	# debug
 
+	aspect = (w,h,y) ->
+		if w<h then [w,h] = [h,w]
+		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
+
 	# os = navigator.appVersion
 	textSize 0.025 * height
-	ptext screen.width, 25,5
-	ptext screen.height,75,5
-	ptext innerWidth, 25,10
-	ptext innerHeight,75,10
-	ptext displayWidth, 25,15
-	ptext displayHeight,75,15
-	ptext width, 25,20
-	ptext height,75,20
+	aspect screen.width, screen.height,5
+	aspect displayWidth, displayHeight,15
+	aspect innerWidth, innerHeight,10
+	aspect width, height,20
 
 	# text currState.name,0.5*width,0.03*height
 	# fill 'green'
