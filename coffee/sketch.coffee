@@ -55,11 +55,15 @@ hms = (x) ->
 console.log hms(180), [0,3,0]
 console.log hms(180.5), [0,3,0.5]
 
-pimage = (img,x,y,w,h) -> image img, x/100*width, y/100*height, w/100*width, h/100*height
-prect = (x,y,w,h) -> rect x/100*width, y/100*height, w/100*width, h/100*height
-ptext = (t,x,y) -> text t,x/100*width, y/100*height
-ptextSize = (s) -> textSize s/100*diag
-ptranslate = (x,y) -> translate x/100*width,y/100*height
+# procentuella versioner:
+pw = (x) -> x/100 * width
+ph = (y) -> y/100 * height
+pd = (s) -> s/100 * sqrt width*width + height*height
+pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
+prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
+ptext = (t,x,y) -> text t,pw(x), ph(y)
+ptextSize = (s) -> textSize pd(s)
+ptranslate = (x,y) -> translate pw(x), ph(y)
 
 class Button
 	constructor : (@text,@x,@y,@w,@h,@bg='white',@fg='black') ->
@@ -330,6 +334,7 @@ setup = ->
 	os = navigator.appVersion
 	console.log os
 	if os.indexOf('Linux') >= 0 # android/linux
+		pixelDensity 3
 		createCanvas screen.width,screen.height
 		#createCanvas displaywidth,displayHeight
 	else
