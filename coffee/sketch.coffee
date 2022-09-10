@@ -337,8 +337,8 @@ setup = ->
 	if os.indexOf('Linux') >= 0 # android/linux
 		#pixelDensity 3
 		# createCanvas 360,720 stort!
-		#createCanvas screen.width,screen.height
-		createCanvas displaywidth,displayHeight
+		createCanvas screen.width,screen.height
+		#createCanvas displaywidth,displayHeight
 	else
 		createCanvas window.innerWidth,window.innerHeight # Windows or Mac
 
@@ -399,7 +399,7 @@ draw = ->
 
 	# os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'F',5,5
+	ptext 'G',5,5
 	aspect screen.width, screen.height,5
 	aspect displayWidth, displayHeight,15
 	aspect innerWidth, innerHeight,10
