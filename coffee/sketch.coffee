@@ -411,12 +411,12 @@ draw = ->
 
 	# # os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'O',50,5
+	ptext 'P',50,5
 	ptext os,50,10
-	# aspect screen.width, screen.height,5
-	# aspect displayWidth, displayHeight,15
-	# aspect innerWidth, innerHeight,10
-	# aspect width, height,20
+	aspect width, height,15
+	aspect innerWidth, innerHeight,20
+	aspect screen.width, screen.height,25
+	aspect displayWidth, displayHeight,30
 
 	# text currState.name,0.5*width,0.03*height
 	# fill 'green'
