@@ -347,7 +347,8 @@ setup = ->
 	os = navigator.appVersion
 	os = if os.indexOf('Linux') >= 0 then 'Android' else 'Windows'
 
-	if os == 'Android' 
+	if os == 'Android'
+		pixelDensity 1
 		createCanvas screen.width,screen.height
 	else
 		createCanvas window.innerWidth,window.innerHeight # Windows or Mac
@@ -410,7 +411,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'I',50,5
+	ptext 'J',50,5
 	ptext os,50,10
 	# aspect screen.width, screen.height,5
 	# aspect displayWidth, displayHeight,15
