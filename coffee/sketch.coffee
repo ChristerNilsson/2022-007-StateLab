@@ -411,7 +411,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'N',50,5
+	ptext 'O',50,5
 	ptext os,50,10
 	# aspect screen.width, screen.height,5
 	# aspect displayWidth, displayHeight,15
