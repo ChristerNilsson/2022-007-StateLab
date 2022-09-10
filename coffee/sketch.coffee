@@ -345,7 +345,7 @@ windowResized = ->
 
 setup = ->
 	os = navigator.appVersion
-	if os.indexOf('Linux') >= 0 then os == 'Android' else 'Windows'
+	os = if os.indexOf('Linux') >= 0 then 'Android' else 'Windows'
 
 	if os == 'Android' 
 		createCanvas screen.width,screen.height
@@ -409,8 +409,9 @@ draw = ->
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
 	# # os = navigator.appVersion
-	# ptextSize 2.5
-	# ptext 'H',5,5
+	ptextSize 2.5
+	ptext 'I',50,5
+	ptext os,50,10
 	# aspect screen.width, screen.height,5
 	# aspect displayWidth, displayHeight,15
 	# aspect innerWidth, innerHeight,10
