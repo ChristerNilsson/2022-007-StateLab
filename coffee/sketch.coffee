@@ -71,7 +71,6 @@ class Button
 		@visible = true
 	draw : (disabled) ->
 		if @visible
-			if @name == 'welcome' then scale 2
 			fill @bg
 			prect @x,@y,@w,@h
 			ptextSize 4
@@ -340,6 +339,7 @@ makeEditButtons = ->
 preload = -> qr = loadImage 'qr.png'
 
 windowResized = ->
+	#resizeCanvas screen.width, screen.height
 	resizeCanvas windowWidth, windowHeight
 	#resizeCanvas displayWidth, displayHeight
 	diag = sqrt width*width + height*height
@@ -349,7 +349,6 @@ setup = ->
 	os = if os.indexOf('Linux') >= 0 then 'Android' else 'Windows'
 
 	if os == 'Android'
-		pixelDensity 1
 		createCanvas screen.width,screen.height
 	else
 		createCanvas window.innerWidth,window.innerHeight # Windows or Mac
@@ -364,11 +363,11 @@ setup = ->
 	rectMode CENTER
 	angleMode DEGREES
 
-	w = width
-	h = height
+	# w = width
+	# h = height
 	
 	# Welcome
-	buttons.welcome  = new Button 'Welcome!', 50,50,100,100
+	buttons.welcome  = new Button 'Click me!', 50,50,100,100
 
 	# Main Page
 	buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
@@ -412,7 +411,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	ptextSize 2.5
-	ptext 'L',50,5
+	ptext 'N',50,5
 	ptext os,50,10
 	# aspect screen.width, screen.height,5
 	# aspect displayWidth, displayHeight,15
