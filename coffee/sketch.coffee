@@ -327,7 +327,8 @@ makeEditButtons = ->
 preload = -> qr = loadImage 'qr.png'
 
 windowResized = ->
-	resizeCanvas windowWidth, windowHeight
+	#resizeCanvas windowWidth, windowHeight
+	resizeCanvas displayWidth, displayHeight
 	diag = sqrt width*width + height*height
 
 setup = ->
@@ -397,7 +398,7 @@ draw = ->
 
 	# os = navigator.appVersion
 	textSize 0.025 * height
-	ptext 'B',5,5
+	ptext 'C',5,5
 	aspect screen.width, screen.height,5
 	aspect displayWidth, displayHeight,15
 	aspect innerWidth, innerHeight,10
