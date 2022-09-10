@@ -335,7 +335,7 @@ setup = ->
 	os = navigator.appVersion
 	console.log os
 	if os.indexOf('Linux') >= 0 # android/linux
-		pixelDensity 3
+		#pixelDensity 3
 		createCanvas screen.width,screen.height
 		#createCanvas displaywidth,displayHeight
 	else
@@ -397,8 +397,8 @@ draw = ->
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
 	# os = navigator.appVersion
-	textSize 0.025 * height
-	ptext 'C',5,5
+	ptextSize 2.5
+	ptext 'D',5,5
 	aspect screen.width, screen.height,5
 	aspect displayWidth, displayHeight,15
 	aspect innerWidth, innerHeight,10
