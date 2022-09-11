@@ -172,8 +172,8 @@ class SWelcome extends State
 
 	message : (key) ->
 		if key == 'welcome'
-			toggleFullScreen()
-			#console.log 'toggle'
+			#toggleFullScreen()
+			fullscreen true
 			resizeCanvas windowWidth, windowHeight
 		super key
 
@@ -427,7 +427,7 @@ setup = ->
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
 
-	currState = if os == 'Android' then states.SWelcome else states.SClock
+	currState = if true or os == 'Android' then states.SWelcome else states.SClock
 
 	#checkButtons()
 	#checkStates()
