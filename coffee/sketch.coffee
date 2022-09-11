@@ -42,7 +42,7 @@ prettyPair = (a,b) ->
 d2 = (x) ->
 	x = Math.trunc x
 	if x < 10 then '0'+x else x
-console.log d2(3), '03'
+#console.log d2(3), '03'
 
 hms = (x) ->
 	orig = x
@@ -53,8 +53,8 @@ hms = (x) ->
 	h = x
 	if orig < 10 then s = Math.trunc(s*10)/10 
 	[h,m,s] 
-console.log hms(180), [0,3,0]
-console.log hms(180.5), [0,3,0.5]
+#console.log hms(180), [0,3,0]
+#console.log hms(180.5), [0,3,0.5]
 
 # procentuella versioner:
 pw = (x) -> x/100 * width
@@ -69,7 +69,7 @@ ptranslate = (x,y) -> translate pw(x), ph(y)
 class Button
 	constructor : (@text,@x,@y,@w,@h,@bg='white',@fg='black') ->
 		@visible = true
-	draw : (disabled) ->
+	draw : ->
 		if @visible
 			fill @bg
 			prect @x,@y,@w,@h
@@ -142,47 +142,65 @@ class BColor extends Button
 # @transitions[msg4] = undefined
 
 class State
-	constructor : -> @transitions = {}
+	constructor : -> 
+		@transitions = {}
+		@makeButtons()
+
 	createTrans : (t) ->
-		console.log t
+		#console.log t
 		target = undefined
 		arr = t.split ' '
 		for word in arr
 			if word == '=>' then target = undefined
 			else if word.indexOf('=>') == 0 then target = word.slice 2
 			else @transitions[word] = target
-		console.log @transitions
+		#console.log @transitions
 
 	message : (key) ->
 		console.log "clicked #{@name}.#{key} => #{@transitions[key]}"
 		if key of @transitions
 			currState = states[@transitions[key]]
 			console.log currState,currState
-			currState.patch()
+			#currState.patch()
 		else console.log 'missing transition:',key
-	patch : ->
+
+	makeButtons : ->
 	draw : ->
 
 class SWelcome extends State
 	constructor : (@name) ->
 		super()
 		@createTrans '=>SClock welcome'
+
 	message : (key) ->
 		if key == 'welcome'
 			toggleFullScreen()
 			console.log 'toggle'
 			resizeCanvas windowWidth, windowHeight
-		super key
+		super()
+
+	makeButtons : ->
+		buttons.welcome  = new Button 'Click me!', 50,50,100,100
+
 
 # =>SClock continue pause left right =>SEditor new
 class SClock extends State
+
 	constructor : (@name) ->
 		super()
-		@createTrans '=>SClock qr continue pause left right =>SEditor new'
+		@createTrans '=>SClock continue left pause qr right =>SEditor new'
 		@paused = true
 		@player = -1
 		buttons.pause.visible = false
 		buttons.continue.visible = false
+
+	makeButtons : ->
+		buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		buttons.pause    = new Button 'pause',    25, 50, 50, 12
+		buttons.continue = new Button 'continue', 25, 50, 50, 12
+		buttons.new      = new Button 'new',      75, 50, 50, 12
+		buttons.qr       = new BImage qr,         75, 50, 12, 12
 
 	uppdatera : ->
 		#console.log 'uppdatera'
@@ -241,25 +259,48 @@ class SClock extends State
 class SEditor extends State
 	constructor : (@name) ->
 		super()
-		@sums = [0,1+2,0,0,2,0]
 
-		@clocks = [3*60,3*60] # seconds
-		@bonuses = [2,2] # seconds
-		buttons.b0.fg = 'yellow'
-		buttons.b1.fg = 'yellow'
-		buttons.e1.fg = 'yellow'
-		buttons.white.text = '3m + 2s'
-		buttons.swap.visible = false
-
+		@sums = [0,0,0,0,0,0]
 		@hcpSwap = 1
 
-		arr = '=>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap'.split ' '
+		arr = '=> a b bonus c d e f green hcp orange reflection white =>SClock ok =>SEditor swap'.split ' '
 		for i in range 6
 			letter = 'abcdef'[i]
 			for j in range 6
 				arr.push letter + j
 		@createTrans arr.join ' '
-		console.log arr.join ' '
+		console.log 'SEditor:',arr.join ' '
+
+		# initialisera
+		@message 'b0' # M += 1
+		@message 'b1' # M += 2
+		@message 'e1' # s += 2
+		@message 'ok'
+
+	makeButtons : ->
+
+		buttons.swap       = new Button 'swap',      33,93, 22,8
+		buttons.ok         = new Button 'ok',        67,93, 22,8
+		buttons.orange     = new BColor 'orange',    50,3
+		buttons.white      = new BColor 'white',     50,9
+		buttons.green      = new BColor 'green',     50,15
+		buttons.reflection = new BDead 'reflection', 25,21
+		buttons.bonus      = new BDead 'bonus',      66,21
+		buttons.hcp        = new BDead 'hcp',        92,21
+
+		for i in range 6
+			letter = 'abcdef'[i]
+			xsize = 100/6
+			ysize = 100/10
+			xoff = xsize/2
+			yoff = 33
+			shown = 'H M S m s t'.split ' '
+			buttons[letter] = new BDead shown[i], xoff+xsize*i, 26
+			for j in range 6
+				number = [1,2,4,8,15,30][j]
+				name = letter + j
+				factor = if i==5 then HCP else 1
+				buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 	message : (key) ->
 
@@ -319,20 +360,6 @@ class SEditor extends State
 		@clocks  = [@players[0][0], @players[1][0]]
 		@bonuses = [@players[0][1], @players[1][1]]
 
-makeEditButtons = ->
-	for i in range 6
-		letter = 'abcdef'[i]
-		xsize = 100/6
-		ysize = 100/10
-		xoff = xsize/2
-		yoff = 33
-		shown = 'H M S m s t'.split ' '
-		buttons[letter] = new BDead shown[i], xoff+xsize*i, 26
-		for j in range 6
-			number = [1,2,4,8,15,30][j]
-			name = letter + j
-			factor = if i==5 then HCP else 1
-			buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 ###################################
 
@@ -343,6 +370,29 @@ windowResized = ->
 	resizeCanvas windowWidth, windowHeight
 	#resizeCanvas displayWidth, displayHeight
 	diag = sqrt width*width + height*height
+
+checkButtons = ->
+	console.log 'checkButtons started'
+	for bkey of buttons # play
+		button = buttons[bkey]
+		found = false
+		for skey of states # SClock
+			state = states[skey]
+			if bkey of state.transitions then found = true
+		if not found then console.log '  Button',bkey,'not used by any state'
+	console.log 'checkButtons done!'
+
+checkStates = ->
+	console.log 'checkStates started'
+	for skey of states # SClock
+		state = states[skey]
+		found = false
+		for tkey of state.transitions
+			transition = state.transitions[tkey]
+			if transition != undefined and transition not of states then console.log transition,'not found'
+			if tkey of buttons then found = true else info = tkey
+		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
+	console.log 'checkStates done!'
 
 setup = ->
 	os = navigator.appVersion
@@ -367,31 +417,20 @@ setup = ->
 	# h = height
 	
 	# Welcome
-	buttons.welcome  = new Button 'Click me!', 50,50,100,100
 
 	# Main Page
-	buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-	buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-	buttons.pause    = new Button 'pause',    25, 50, 50, 12
-	buttons.continue = new Button 'continue', 25, 50, 50, 12
-	buttons.new      = new Button 'new',      75, 50, 50, 12
-	buttons.qr       = new BImage qr,         75, 50, 12, 12
 	
 	# Edit Page
-	buttons.swap       = new Button 'swap', 33, 93, 22, 8
-	buttons.ok         = new Button 'ok',   67, 93, 22, 8
-	buttons.orange     = new BColor 'orange',50, 3
-	buttons.white      = new BColor 'white', 50, 9
-	buttons.green      = new BColor 'green', 50, 15
-	buttons.reflection = new BDead 'reflection', 25,21
-	buttons.bonus      = new BDead 'bonus',      66,21
-	buttons.hcp        = new BDead 'hcp',        92,21
 
-	makeEditButtons()
 	createState 'SWelcome', SWelcome
 	createState 'SClock', SClock
 	createState 'SEditor',SEditor
+	createState 'SYxa',SEditor
+
 	currState = if os == 'Android' then states.SWelcome else states.SClock
+
+	#checkButtons()
+	#checkStates()
 
 draw = ->
 	background 'black'
@@ -399,9 +438,8 @@ draw = ->
 	states.SClock.uppdatera()
 
 	for key of currState.transitions
-		target = currState.transitions[key]
-		if key of buttons then buttons[key].draw target == undefined
-		else console.log 'missing button:',key
+		if key of buttons then buttons[key].draw()
+		else console.log 'missing button:',currState.name, currState.transitions[key]
 
 	# debug
 
@@ -410,23 +448,23 @@ draw = ->
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
 	# # os = navigator.appVersion
-	ptextSize 2.5
-	ptext 'P',50,5
-	ptext os,50,10
-	aspect width, height,15
-	aspect innerWidth, innerHeight,20
-	aspect screen.width, screen.height,25
-	aspect displayWidth, displayHeight,30
+	# ptextSize 2.5
+	# ptext 'P',50,5
+	# ptext os,50,10
+	# aspect width, height,15
+	# aspect innerWidth, innerHeight,20
+	# aspect screen.width, screen.height,25
+	# aspect displayWidth, displayHeight,30
 
-	# text currState.name,0.5*width,0.03*height
-	# fill 'green'
-	# text round3(states.SEditor.bonuses[0]),0.1*width,0.03*height
-	# text round3(states.SEditor.clocks[0]),0.25*width,0.03*height
-	# text round3(states.SEditor.clocks[1]),0.75*width,0.03*height
-	# text round3(states.SEditor.bonuses[1]),0.9*width,0.03*height
+	# ptext currState.name,50,3
+	# # fill 'green'
+	# ptext round3(states.SEditor.bonuses[0]),10,3
+	# ptext round3(states.SEditor.clocks[0]),25,3
+	# ptext round3(states.SEditor.clocks[1]),75,3
+	# ptext round3(states.SEditor.bonuses[1]),90,3
 
-	# text states.SClock.paused,0.3*width,0.025*height
-	# text states.SClock.player,0.7*width,0.025*height
+	# ptext states.SClock.paused,30,2.5
+	# ptext states.SClock.player,70,2.5
 
 	currState.draw()
 
