@@ -427,7 +427,7 @@ setup = ->
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
 
-	currState = if true or os == 'Android' then states.SWelcome else states.SClock
+	currState = if os == 'Android' then states.SWelcome else states.SClock
 
 	#checkButtons()
 	#checkStates()
