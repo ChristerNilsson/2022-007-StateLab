@@ -168,13 +168,14 @@ class SWelcome extends State
 	constructor : (name) ->
 		super name
 		@createTrans '=>SClock welcome'
+		console.log @
 
 	message : (key) ->
 		if key == 'welcome'
 			toggleFullScreen()
-			console.log 'toggle'
+			#console.log 'toggle'
 			resizeCanvas windowWidth, windowHeight
-		super()
+		super key
 
 	makeButtons : ->
 		@buttons.welcome  = new Button 'Click me!', 50,50,100,100
@@ -392,7 +393,12 @@ checkStates = ->
 
 setup = ->
 	os = navigator.appVersion
-	os = if os.indexOf('Linux') >= 0 then 'Android' else 'Windows'
+	if os.indexOf('Linux') >= 0 then os = 'Android'
+	if os.indexOf('Windows') >= 0 then os = 'Windows'
+	if os.indexOf('Mac') >= 0 then os = 'Mac'
+
+	if os == 'Mac' then textFont 'Verdana'
+	if os == 'Windows' then textFont 'Lucida Sans Unicode'
 
 	if os == 'Android'
 		createCanvas screen.width,screen.height
@@ -401,7 +407,6 @@ setup = ->
 
 	diag = sqrt width*width + height*height
 
-	textFont 'Lucida Sans Unicode'
 	background 'black'
 	textAlign CENTER,CENTER
 	rectMode CENTER
@@ -430,7 +435,11 @@ setup = ->
 draw = ->
 	background 'black'
 	states.SClock.uppdatera()
-	currState.buttons[key].draw() for key of currState.transitions
+	for tkey of currState.transitions
+		if tkey of currState.buttons 
+			currState.buttons[tkey].draw()
+		else
+			console.log 'missing',tkey
 
 	# debug
 	aspect = (w,h,y) ->
