@@ -94,8 +94,8 @@ class BRotate extends Button
 	draw : ->
 		secs = states.SEditor.clocks[@player]
 		[h,m,s] = hms secs
-		if h >= 1 then ss = h + ':' + d2(m)
-		else ss = m + ':' + if secs < 10  then '0'+s.toFixed(1) else d2(s)
+		if h >= 1 then ss = h + ':' + d2 m
+		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
 
 		push()
 		ptranslate @x,@y
