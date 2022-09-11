@@ -19,10 +19,7 @@ toggleFullScreen = ->
 		requestFullScreen.call docEl
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
-
-createState = (key,klass) ->
-	#console.log ''
-	states[key] = new klass key
+createState = (key,klass) -> states[key] = new klass key
 
 pretty = (tot) ->
 	s = tot % 60
@@ -63,7 +60,7 @@ ph = (y) -> y/100 * height
 pd = (s) -> s/100 * sqrt width*width + height*height
 pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
 prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
-ptext = (t,x,y) -> text t,pw(x), ph(y)
+ptext = (t,x,y) -> text t, pw(x), ph(y)
 ptextSize = (s) -> textSize pd(s)
 ptranslate = (x,y) -> translate pw(x), ph(y)
 
@@ -118,19 +115,19 @@ class BRotate extends Button
 class BEdit extends Button
 	constructor : (text,x,y,w,h,fg='gray') -> super text,x,y,w,h,'black',fg
 	draw : ->
-		ptextSize 5 # 0.05*diag
+		ptextSize 5
 		fill @fg
 		ptext @text,@x,@y
 
 class BDead extends Button
 	constructor : (text,x,y,fg='lightgray') -> super text,x,y,0,0,'black',fg
 	draw : ->
-		ptextSize 4 #0.04*diag
+		ptextSize 4
 		fill @fg
 		ptext @text,@x,@y
 
 class BColor extends Button
-	constructor : (@fg,x,y) -> super '',x,y,0,0
+	constructor : (@fg,x,y) -> super '',x,y
 	draw : ->
 		push()
 		textAlign CENTER,CENTER
@@ -163,13 +160,8 @@ class State
 
 	message : (key) ->
 		console.log "clicked #{@name}.#{key} => #{@transitions[key]}"
-		#if key of @transitions
 		currState = states[@transitions[key]]
-			#console.log currState,currState
-			#currState.patch()
-		#else console.log 'missing transition:',key
 
-	#makeButtons : ->
 	draw : ->
 
 class SWelcome extends State
@@ -268,18 +260,16 @@ class SEditor extends State
 		@sums = [0,0,0,0,0,0]
 		@hcpSwap = 1
 
-		arr = '=> a b bonus c d e f green hcp orange reflection white =>SClock ok =>SEditor swap'.split ' '
+		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock ok =>SEditor swap'.split ' '
 		for i in range 6
-			letter = 'abcdef'[i]
 			for j in range 6
-				arr.push letter + j
+				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
 		@createTrans arr.join ' '
-		#console.log 'SEditor:',arr.join ' '
 
 		# initialisera
-		@message 'b0' # M += 1
-		@message 'b1' # M += 2
-		@message 'e1' # s += 2
+		@message 'M1' # M += 1
+		@message 'M2' # M += 2
+		@message 's2' # s += 2
 		@message 'ok'
 
 	makeButtons : ->
@@ -294,18 +284,18 @@ class SEditor extends State
 		@buttons.hcp        = new BDead 'hcp',        92,21
 
 		for i in range 6
-			letter = 'abcdef'[i]
+			letter = 'HMSmst'[i]
 			xsize = 100/6
 			ysize = 100/10
 			xoff = xsize/2
 			yoff = 33
-			shown = 'H M S m s t'.split ' '
-			@buttons[letter] = new BDead shown[i], xoff+xsize*i, 26
+			#shown = 'H M S m s t'.split ' '
+			@buttons[letter] = new BDead 'HMSmst'[i], xoff+xsize*i, 26
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
-				name = letter + j
-				factor = if i==5 then HCP else 1
-				@buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
+				name = letter + number
+				#factor = if i==5 then HCP else 1
+				@buttons[name] = new BEdit number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 	message : (key) ->
 
@@ -325,10 +315,8 @@ class SEditor extends State
 		else
 			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
-			col = 'abcdef'.indexOf letter
-			factor = if col==5 then HCP else 1
-			j = key[1]
-			number = factor * [1,2,4,8,15,30][j]
+			col = 'HMSmst'.indexOf letter
+			number = parseInt key.slice 1
 			@sums[col] = if @buttons[key].fg == 'gray' then @sums[col]-number else @sums[col]+number
 			@buttons.ok.visible = @sums[0] + @sums[1] + @sums[2] > 0
 			@buttons.swap.visible = @sums[5] > 0
@@ -340,14 +328,14 @@ class SEditor extends State
 		@buttons.white.text = @compact()
 		@handicap()
 		if @hcp == 0
-			@buttons.orange.text   = ''
-			@buttons.green.text = ''
+			@buttons.orange.text = ''
+			@buttons.green.text  = ''
 		else
-			@buttons.orange.text   = prettyPair @players[0][0], @players[0][1]
-			@buttons.green.text = prettyPair @players[1][0], @players[1][1]
+			@buttons.orange.text = prettyPair @players[0][0], @players[0][1]
+			@buttons.green.text  = prettyPair @players[1][0], @players[1][1]
 
 	compact : ->
-		headers = 'h m s m s'.split ' '
+		headers = 'hmsms'
 		header0 = ''
 		header1 = ''
 		for i in range 0,3
@@ -381,10 +369,10 @@ windowResized = ->
 
 checkButtons = ->
 	console.log 'checkButtons started'
-	for bkey of buttons # play
+	for bkey of buttons
 		button = buttons[bkey]
 		found = false
-		for skey of states # SClock
+		for skey of states
 			state = states[skey]
 			if bkey of state.transitions then found = true
 		if not found then console.log '  Button',bkey,'not used by any state'
@@ -392,7 +380,7 @@ checkButtons = ->
 
 checkStates = ->
 	console.log 'checkStates started'
-	for skey of states # SClock
+	for skey of states
 		state = states[skey]
 		found = false
 		for tkey of state.transitions
