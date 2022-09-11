@@ -175,7 +175,7 @@ class SWelcome extends State
 		if key == 'welcome'
 			#toggleFullScreen()
 			fullscreen true
-			resizeCanvas windowWidth, windowHeight
+			resizeCanvas innerWidth, innerHeight
 		super key
 
 	makeButtons : ->
@@ -368,9 +368,7 @@ preload = ->
 	sound = loadSound 'key.mp3'
 
 windowResized = ->
-	#resizeCanvas screen.width, screen.height
-	resizeCanvas windowWidth, windowHeight
-	#resizeCanvas displayWidth, displayHeight
+	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
 checkButtons = ->
@@ -406,9 +404,9 @@ setup = ->
 	if os == 'Windows' then textFont 'Lucida Sans Unicode'
 
 	if os == 'Android'
-		createCanvas screen.width,screen.height
+		createCanvas innerWidth,innerHeight
 	else
-		createCanvas window.innerWidth,window.innerHeight # Windows or Mac
+		createCanvas innerWidth,innerHeight # Windows or Mac
 
 	diag = sqrt width*width + height*height
 
@@ -432,6 +430,7 @@ setup = ->
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
 
+	#currState = states.SWelcome
 	currState = if os == 'Android' then states.SWelcome else states.SClock
 
 	#checkButtons()

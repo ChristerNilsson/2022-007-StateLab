@@ -41,6 +41,12 @@
 * The total game time is the same, before and after the handicap
 * If you want to relate ELO difference to sixtieths, use a separate table or formula, as there are several alternatives
 
+## How to find a handicap between two persons
+1. Start with handicap 0.
+1. Play a game with your friend
+1. Adjust the handicap with 10 then 9 and so on down to 1
+1. Repeat from step 2 until the handicap is stable
+
 ### Example:
 * You have decided on a game using 10m + 5s, and would like to give away 5m to the other player
 * Using 5m/10m = 30/60, the adjusted times will be 5m + 2.5s and 15m + 7.5s
@@ -74,3 +80,4 @@
 * Click **new**
 * Choose numbers
 * Click **ok**
+
