@@ -2,7 +2,6 @@ HCP = 1
 HOUR = 3600
 MINUTE = 60
 
-buttons = {}
 states = {}
 
 qr = null
@@ -21,7 +20,9 @@ toggleFullScreen = ->
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 
-createState = (key,klass) -> states[key] = new klass key
+createState = (key,klass) ->
+	#console.log ''
+	states[key] = new klass key
 
 pretty = (tot) ->
 	s = tot % 60
@@ -67,8 +68,12 @@ ptextSize = (s) -> textSize pd(s)
 ptranslate = (x,y) -> translate pw(x), ph(y)
 
 class Button
-	constructor : (@text,@x,@y,@w,@h,@bg='white',@fg='black') ->
+	constructor : (@text,@x,@y,@w=0,@h=0,@bg='white',@fg='black') ->
 		@visible = true
+		@x = Math.round @x
+		@y = Math.round @y
+		@w = Math.round @w
+		@h = Math.round @h
 	draw : ->
 		if @visible
 			fill @bg
@@ -79,8 +84,9 @@ class Button
 	inside : -> -@w/2 <= mouseX*100/width-@x <= @w/2 and -@h/2 <= mouseY*100/height-@y <= @h/2
 
 class BImage extends Button
-	constructor : (@image,x,y,w,h) -> super '',x,y,w,h
-	#draw :  -> if @image then image @image,(width-@w)/2,(height-@h)/2,@w,@h
+	constructor : (@image,x,y,w,h) ->
+		super '',x,y,w,h
+		@visible = false
 	draw :  ->
 		if @image
 			w = @h * height/width # quadratic qr
@@ -142,34 +148,33 @@ class BColor extends Button
 # @transitions[msg4] = undefined
 
 class State
-	constructor : -> 
+	constructor : (@name) -> 
+		@buttons = {}
 		@transitions = {}
 		@makeButtons()
 
 	createTrans : (t) ->
-		#console.log t
 		target = undefined
 		arr = t.split ' '
 		for word in arr
 			if word == '=>' then target = undefined
 			else if word.indexOf('=>') == 0 then target = word.slice 2
 			else @transitions[word] = target
-		#console.log @transitions
 
 	message : (key) ->
 		console.log "clicked #{@name}.#{key} => #{@transitions[key]}"
-		if key of @transitions
-			currState = states[@transitions[key]]
-			console.log currState,currState
+		#if key of @transitions
+		currState = states[@transitions[key]]
+			#console.log currState,currState
 			#currState.patch()
-		else console.log 'missing transition:',key
+		#else console.log 'missing transition:',key
 
-	makeButtons : ->
+	#makeButtons : ->
 	draw : ->
 
 class SWelcome extends State
-	constructor : (@name) ->
-		super()
+	constructor : (name) ->
+		super name
 		@createTrans '=>SClock welcome'
 
 	message : (key) ->
@@ -180,27 +185,27 @@ class SWelcome extends State
 		super()
 
 	makeButtons : ->
-		buttons.welcome  = new Button 'Click me!', 50,50,100,100
+		@buttons.welcome  = new Button 'Click me!', 50,50,100,100
 
 
 # =>SClock continue pause left right =>SEditor new
 class SClock extends State
 
-	constructor : (@name) ->
-		super()
+	constructor : (name) ->
+		super name
 		@createTrans '=>SClock continue left pause qr right =>SEditor new'
 		@paused = true
 		@player = -1
-		buttons.pause.visible = false
-		buttons.continue.visible = false
+		@buttons.pause.visible = false
+		@buttons.continue.visible = false
 
 	makeButtons : ->
-		buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		buttons.pause    = new Button 'pause',    25, 50, 50, 12
-		buttons.continue = new Button 'continue', 25, 50, 50, 12
-		buttons.new      = new Button 'new',      75, 50, 50, 12
-		buttons.qr       = new BImage qr,         75, 50, 12, 12
+		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		@buttons.pause    = new Button 'pause',    25, 50, 50, 12
+		@buttons.continue = new Button 'continue', 25, 50, 50, 12
+		@buttons.new      = new Button 'new',      75, 50, 50, 12
+		@buttons.qr       = new BImage qr,         75, 50, 12, 12
 
 	uppdatera : ->
 		#console.log 'uppdatera'
@@ -219,8 +224,8 @@ class SClock extends State
 				if @player == 0 then states.SEditor.clocks[0] += states.SEditor.bonuses[0]
 				@paused = false
 				@player = 1
-				buttons.left.fg = 'black'
-				buttons.right.fg = 'white'
+				@buttons.left.fg = 'black'
+				@buttons.right.fg = 'white'
 
 		if key == 'right'
 			if timeout then return
@@ -228,37 +233,37 @@ class SClock extends State
 				if @player == 1 then states.SEditor.clocks[1] += states.SEditor.bonuses[1]
 				@paused = false
 				@player = 0
-				buttons.left.fg = 'white'
-				buttons.right.fg = 'black'
+				@buttons.left.fg = 'white'
+				@buttons.right.fg = 'black'
 
 		if key == 'pause'
 			@paused = true
 			if @player == 0
-				buttons.left.fg = 'gray'
-				buttons.right.fg = 'black'
+				@buttons.left.fg = 'gray'
+				@buttons.right.fg = 'black'
 			else
-				buttons.left.fg = 'black'
-				buttons.right.fg = 'gray'
+				@buttons.left.fg = 'black'
+				@buttons.right.fg = 'gray'
 
 		if key == 'continue'
 			@paused = false
 			if @player == 0
-				buttons.left.fg = 'white'
-				buttons.right.fg = 'black'
+				@buttons.left.fg = 'white'
+				@buttons.right.fg = 'black'
 			else
-				buttons.left.fg = 'black'
-				buttons.right.fg = 'white'
+				@buttons.left.fg = 'black'
+				@buttons.right.fg = 'white'
 
-		buttons.pause.visible = not @paused
-		buttons.qr.visible = not @paused
-		buttons.continue.visible = @paused
-		buttons.new.visible = @paused
+		@buttons.pause.visible = not @paused
+		@buttons.qr.visible = not @paused
+		@buttons.continue.visible = @paused
+		@buttons.new.visible = @paused
 		super key
 
 # =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
 class SEditor extends State
-	constructor : (@name) ->
-		super()
+	constructor : (name) ->
+		super name
 
 		@sums = [0,0,0,0,0,0]
 		@hcpSwap = 1
@@ -269,7 +274,7 @@ class SEditor extends State
 			for j in range 6
 				arr.push letter + j
 		@createTrans arr.join ' '
-		console.log 'SEditor:',arr.join ' '
+		#console.log 'SEditor:',arr.join ' '
 
 		# initialisera
 		@message 'b0' # M += 1
@@ -279,14 +284,14 @@ class SEditor extends State
 
 	makeButtons : ->
 
-		buttons.swap       = new Button 'swap',      33,93, 22,8
-		buttons.ok         = new Button 'ok',        67,93, 22,8
-		buttons.orange     = new BColor 'orange',    50,3
-		buttons.white      = new BColor 'white',     50,9
-		buttons.green      = new BColor 'green',     50,15
-		buttons.reflection = new BDead 'reflection', 25,21
-		buttons.bonus      = new BDead 'bonus',      66,21
-		buttons.hcp        = new BDead 'hcp',        92,21
+		@buttons.swap       = new Button 'swap',      33,93, 22,8
+		@buttons.ok         = new Button 'ok',        67,93, 22,8
+		@buttons.orange     = new BColor 'orange',    50,3
+		@buttons.white      = new BColor 'white',     50,9
+		@buttons.green      = new BColor 'green',     50,15
+		@buttons.reflection = new BDead 'reflection', 25,21
+		@buttons.bonus      = new BDead 'bonus',      66,21
+		@buttons.hcp        = new BDead 'hcp',        92,21
 
 		for i in range 6
 			letter = 'abcdef'[i]
@@ -295,48 +300,51 @@ class SEditor extends State
 			xoff = xsize/2
 			yoff = 33
 			shown = 'H M S m s t'.split ' '
-			buttons[letter] = new BDead shown[i], xoff+xsize*i, 26
+			@buttons[letter] = new BDead shown[i], xoff+xsize*i, 26
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + j
 				factor = if i==5 then HCP else 1
-				buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
+				@buttons[name] = new BEdit factor * number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 	message : (key) ->
 
 		if key == 'swap'
 			@hcpSwap = -@hcpSwap
-		else if key == 'ok' 
+		else if key == 'ok'
 			timeout = false
-			buttons.continue.visible = false
-			buttons.pause.visible = true
-			buttons.left.fg = 'white'
-			buttons.left.bg = 'orange'
-			buttons.right.fg = 'white'
-			buttons.right.bg = 'green'
+			states.SClock.buttons.continue.visible = false
+			states.SClock.buttons.pause.visible = true
+			states.SClock.buttons.new.visible = false
+			states.SClock.buttons.qr.visible = true
+
+			states.SClock.buttons.left.fg = 'white'
+			states.SClock.buttons.left.bg = 'orange'
+			states.SClock.buttons.right.fg = 'white'
+			states.SClock.buttons.right.bg = 'green'
 		else
-			buttons[key].fg = if buttons[key].fg == 'gray' then 'yellow' else 'gray'
+			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
 			col = 'abcdef'.indexOf letter
 			factor = if col==5 then HCP else 1
 			j = key[1]
 			number = factor * [1,2,4,8,15,30][j]
-			@sums[col] = if buttons[key].fg == 'gray' then @sums[col]-number else @sums[col]+number
-			buttons.ok.visible = @sums[0] + @sums[1] + @sums[2] > 0
-			buttons.swap.visible = @sums[5] > 0
+			@sums[col] = if @buttons[key].fg == 'gray' then @sums[col]-number else @sums[col]+number
+			@buttons.ok.visible = @sums[0] + @sums[1] + @sums[2] > 0
+			@buttons.swap.visible = @sums[5] > 0
 
 		@uppdatera()
 		super key
 
 	uppdatera : ->
-		buttons.white.text = @compact()
+		@buttons.white.text = @compact()
 		@handicap()
 		if @hcp == 0
-			buttons.orange.text   = ''
-			buttons.green.text = ''
+			@buttons.orange.text   = ''
+			@buttons.green.text = ''
 		else
-			buttons.orange.text   = prettyPair @players[0][0], @players[0][1]
-			buttons.green.text = prettyPair @players[1][0], @players[1][1]
+			@buttons.orange.text   = prettyPair @players[0][0], @players[0][1]
+			@buttons.green.text = prettyPair @players[1][0], @players[1][1]
 
 	compact : ->
 		headers = 'h m s m s'.split ' '
@@ -406,26 +414,25 @@ setup = ->
 	diag = sqrt width*width + height*height
 
 	textFont 'Lucida Sans Unicode'
-
 	background 'black'
-
 	textAlign CENTER,CENTER
 	rectMode CENTER
 	angleMode DEGREES
 
-	# w = width
-	# h = height
-	
-	# Welcome
-
-	# Main Page
-	
-	# Edit Page
-
 	createState 'SWelcome', SWelcome
 	createState 'SClock', SClock
 	createState 'SEditor',SEditor
-	createState 'SYxa',SEditor
+
+	# log everything
+	for skey of states 
+		state = states[skey]
+		console.log ''
+		console.log 'State',state
+		for tkey of state.transitions
+			transition = state.transitions[tkey]
+			button = state.buttons[tkey]
+			if transition == undefined then transition = 'nothing'
+			console.log ' ',tkey,'=>',transition,button
 
 	currState = if os == 'Android' then states.SWelcome else states.SClock
 
@@ -434,15 +441,10 @@ setup = ->
 
 draw = ->
 	background 'black'
-
 	states.SClock.uppdatera()
-
-	for key of currState.transitions
-		if key of buttons then buttons[key].draw()
-		else console.log 'missing button:',currState.name, currState.transitions[key]
+	currState.buttons[key].draw() for key of currState.transitions
 
 	# debug
-
 	aspect = (w,h,y) ->
 		if w<h then [w,h] = [h,w]
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
@@ -471,7 +473,7 @@ draw = ->
 mouseClicked = ->
 	for key of currState.transitions
 		if currState.transitions[key] == undefined then continue
-		if buttons[key].visible and buttons[key].inside mouseX, mouseY 
-			console.log key
+		button = currState.buttons[key]
+		if button.visible and button.inside mouseX, mouseY 
 			currState.message key
 			break

@@ -35,7 +35,7 @@
 
 ```
 
-## Handicap system.
+## Handicap system
 * No handicap is default
 * The handicap is based on sixtieths, 0/60 to 60/60
 * The total game time is the same, before and after the handicap
