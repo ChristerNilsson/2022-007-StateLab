@@ -108,7 +108,7 @@ class BRotate extends Button
 		ptext ss,0,1.7
 		ptextSize 5
 		if states.SEditor.bonuses[@player] > 0
-			ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,15
+			ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
 		if states.SEditor.clocks[@player] <= 0 then @bg = 'red'
 		pop()
 
@@ -288,9 +288,9 @@ class SEditor extends State
 			xsize = 100/6
 			ysize = 100/10
 			xoff = xsize/2
-			yoff = 33
+			yoff = 33+2
 			#shown = 'H M S m s t'.split ' '
-			@buttons[letter] = new BDead 'HMSmst'[i], xoff+xsize*i, 26
+			@buttons[letter] = new BDead 'HMSmst'[i], xoff+xsize*i, 26+2
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
