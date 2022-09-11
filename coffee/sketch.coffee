@@ -215,8 +215,9 @@ class SClock extends State
 		if key == 'left'
 			if timeout then return
 			else
-				sound.play()
-				if @player == 0 then states.SEditor.clocks[0] += states.SEditor.bonuses[0]
+				if @player in [-1,0]
+					sound.play()
+					states.SEditor.clocks[0] += states.SEditor.bonuses[0]
 				@paused = false
 				@player = 1
 				@buttons.left.fg = 'black'
@@ -225,8 +226,9 @@ class SClock extends State
 		if key == 'right'
 			if timeout then return
 			else
-				sound.play()
-				if @player == 1 then states.SEditor.clocks[1] += states.SEditor.bonuses[1]
+				if @player in [-1,1]
+					sound.play()
+					states.SEditor.clocks[1] += states.SEditor.bonuses[1]
 				@paused = false
 				@player = 0
 				@buttons.left.fg = 'white'
