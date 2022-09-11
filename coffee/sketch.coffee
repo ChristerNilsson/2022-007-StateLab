@@ -8,6 +8,7 @@ qr = null
 timeout = false
 currState = null
 os = ''
+sound = null
 
 diag = 0 
 
@@ -214,6 +215,7 @@ class SClock extends State
 		if key == 'left'
 			if timeout then return
 			else
+				sound.play()
 				if @player == 0 then states.SEditor.clocks[0] += states.SEditor.bonuses[0]
 				@paused = false
 				@player = 1
@@ -223,6 +225,7 @@ class SClock extends State
 		if key == 'right'
 			if timeout then return
 			else
+				sound.play()
 				if @player == 1 then states.SEditor.clocks[1] += states.SEditor.bonuses[1]
 				@paused = false
 				@player = 0
@@ -360,7 +363,9 @@ class SEditor extends State
 
 ###################################
 
-preload = -> qr = loadImage 'qr.png'
+preload = -> 
+	qr = loadImage 'qr.png'
+	sound = loadSound 'key.mp3'
 
 windowResized = ->
 	#resizeCanvas screen.width, screen.height
