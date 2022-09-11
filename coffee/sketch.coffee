@@ -12,12 +12,12 @@ sound = null
 
 diag = 0 
 
-toggleFullScreen = ->
-	doc = window.document
-	docEl = doc.documentElement
-	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
-	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
-		requestFullScreen.call docEl
+# toggleFullScreen = ->
+# 	doc = window.document
+# 	docEl = doc.documentElement
+# 	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
+# 	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
+# 		requestFullScreen.call docEl
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
@@ -106,7 +106,7 @@ class BRotate extends Button
 		prect 0,0,@w,@h
 		fill @fg
 		ptextSize 18
-		ptext ss,0,1.7
+		ptext ss,0,-2
 		ptextSize 5
 		if states.SEditor.bonuses[@player] > 0
 			ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
@@ -264,7 +264,7 @@ class SEditor extends State
 		@sums = [0,0,0,0,0,0]
 		@hcpSwap = 1
 
-		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock ok =>SEditor swap'.split ' '
+		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor swap'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
@@ -278,8 +278,9 @@ class SEditor extends State
 
 	makeButtons : ->
 
-		@buttons.swap       = new Button 'swap',      33,93, 22,8
-		@buttons.ok         = new Button 'ok',        67,93, 22,8
+		@buttons.swap       = new Button 'swap',      25,93, 22,8
+		@buttons.cancel     = new Button 'cancel',    50,93, 22,8
+		@buttons.ok         = new Button 'ok',        75,93, 22,8
 		@buttons.orange     = new BColor 'orange',    50,3
 		@buttons.white      = new BColor 'white',     50,9
 		@buttons.green      = new BColor 'green',     50,15
@@ -293,18 +294,17 @@ class SEditor extends State
 			ysize = 100/10
 			xoff = xsize/2
 			yoff = 33+2
-			#shown = 'H M S m s t'.split ' '
 			@buttons[letter] = new BDead 'HMSmst'[i], xoff+xsize*i, 26+2
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				#factor = if i==5 then HCP else 1
 				@buttons[name] = new BEdit number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
 
 	message : (key) ->
 
 		if key == 'swap'
 			@hcpSwap = -@hcpSwap
+		else if key == 'cancel'
 		else if key == 'ok'
 			timeout = false
 			states.SClock.buttons.continue.visible = false
@@ -316,6 +316,10 @@ class SEditor extends State
 			states.SClock.buttons.left.bg = 'orange'
 			states.SClock.buttons.right.fg = 'white'
 			states.SClock.buttons.right.bg = 'green'
+
+			@clocks  = [@players[0][0], @players[1][0]]
+			@bonuses = [@players[0][1], @players[1][1]]
+
 		else
 			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
@@ -357,8 +361,6 @@ class SEditor extends State
 		@players = []
 		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
 		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
-		@clocks  = [@players[0][0], @players[1][0]]
-		@bonuses = [@players[0][1], @players[1][1]]
 
 
 ###################################
