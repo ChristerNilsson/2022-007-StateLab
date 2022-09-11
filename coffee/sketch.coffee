@@ -2,7 +2,12 @@ HCP = 1
 HOUR = 3600
 MINUTE = 60
 
+FRAMERATE = 10
+
 states = {}
+
+rates = []
+sumRate = 0
 
 qr = null
 timeout = false
@@ -11,13 +16,6 @@ os = ''
 sound = null
 
 diag = 0 
-
-# toggleFullScreen = ->
-# 	doc = window.document
-# 	docEl = doc.documentElement
-# 	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
-# 	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
-# 		requestFullScreen.call docEl
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
@@ -97,7 +95,7 @@ class BRotate extends Button
 		secs = states.SEditor.clocks[@player]
 		[h,m,s] = hms secs
 		if h >= 1 then ss = h + ':' + d2(m)
-		else ss = m + ':' + if secs < 10  then s.toFixed(1) else d2(s)
+		else ss = m + ':' + if secs < 10  then '0'+s.toFixed(1) else d2(s)
 
 		push()
 		ptranslate @x,@y
@@ -173,7 +171,6 @@ class SWelcome extends State
 
 	message : (key) ->
 		if key == 'welcome'
-			#toggleFullScreen()
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
 		super key
@@ -205,7 +202,7 @@ class SClock extends State
 		#console.log 'uppdatera'
 		if @paused then return
 		clock = states.SEditor.clocks[@player]
-		if clock > 0 then clock -= 1/60
+		if clock > 0 then clock -= 1/FRAMERATE
 		if clock <= 0 
 			clock = 0
 			timeout = true
@@ -272,10 +269,10 @@ class SEditor extends State
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
 		@createTrans arr.join ' '
 
-		# initialisera
-		@message 'M1' # M += 1
-		@message 'M2' # M += 2
-		@message 's2' # s += 2
+		# initialisera M3+s2
+		@message 'M1'
+		@message 'M2'
+		@message 's2'
 		@message 'ok'
 
 	makeButtons : ->
@@ -399,18 +396,16 @@ checkStates = ->
 	console.log 'checkStates done!'
 
 setup = ->
+	frameRate FRAMERATE
 	os = navigator.appVersion
 	if os.indexOf('Linux') >= 0 then os = 'Android'
 	if os.indexOf('Windows') >= 0 then os = 'Windows'
 	if os.indexOf('Mac') >= 0 then os = 'Mac'
 
+	createCanvas innerWidth,innerHeight
+
 	if os == 'Mac' then textFont 'Verdana'
 	if os == 'Windows' then textFont 'Lucida Sans Unicode'
-
-	if os == 'Android'
-		createCanvas innerWidth,innerHeight
-	else
-		createCanvas innerWidth,innerHeight # Windows or Mac
 
 	diag = sqrt width*width + height*height
 
@@ -434,7 +429,6 @@ setup = ->
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
 
-	#currState = states.SWelcome
 	currState = if os == 'Android' then states.SWelcome else states.SClock
 
 	#checkButtons()
@@ -454,14 +448,14 @@ draw = ->
 		if w<h then [w,h] = [h,w]
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
+	rates.push frameRate()
+	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
+	sumRate += _.last(rates) - oldest
+
 	# # os = navigator.appVersion
-	# ptextSize 2.5
-	# ptext 'P',50,5
-	# ptext os,50,10
-	# aspect width, height,15
-	# aspect innerWidth, innerHeight,20
-	# aspect screen.width, screen.height,25
-	# aspect displayWidth, displayHeight,30
+	ptextSize 2.5
+	ptext 'A',5,5
+	ptext Math.round(sumRate),95,5
 
 	# ptext currState.name,50,3
 	# # fill 'green'
