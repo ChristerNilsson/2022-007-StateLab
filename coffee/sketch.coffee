@@ -6,8 +6,8 @@ FRAMERATE = 10
 
 states = {}
 
-rates = []
-sumRate = 0
+# rates = []
+# sumRate = 0
 
 qr = null
 timeout = false
@@ -106,8 +106,10 @@ class BRotate extends Button
 		ptextSize 18
 		ptext ss,0,-2
 		ptextSize 5
-		if states.SEditor.bonuses[@player] > 0
-			ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
+
+		ptext (if h==0 then 'm:ss' else 'h:mm'),0,17
+		# if states.SEditor.bonuses[@player] > 0
+		# 	ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
 		if states.SEditor.clocks[@player] <= 0 then @bg = 'red'
 		pop()
 
@@ -179,12 +181,12 @@ class SWelcome extends State
 		@buttons.welcome  = new Button 'Click me!', 50,50,100,100
 
 
-# =>SClock continue pause left right =>SEditor new
+# =>SClock continue pause left right =>SEditor edit
 class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock continue left pause qr right =>SEditor new'
+		@createTrans '=>SClock continue left pause qr right =>SEditor edit'
 		@paused = true
 		@player = -1
 		@buttons.pause.visible = false
@@ -195,7 +197,7 @@ class SClock extends State
 		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
 		@buttons.pause    = new Button 'pause',    25, 50, 50, 12
 		@buttons.continue = new Button 'continue', 25, 50, 50, 12
-		@buttons.new      = new Button 'new',      75, 50, 50, 12
+		@buttons.edit     = new Button 'edit',      75, 50, 50, 12
 		@buttons.qr       = new BImage qr,         75, 50, 12, 12
 
 	uppdatera : ->
@@ -252,7 +254,7 @@ class SClock extends State
 		@buttons.pause.visible = not @paused
 		@buttons.qr.visible = not @paused
 		@buttons.continue.visible = @paused
-		@buttons.new.visible = @paused
+		@buttons.edit.visible = @paused
 		super key
 
 # =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
@@ -308,7 +310,7 @@ class SEditor extends State
 			timeout = false
 			states.SClock.buttons.continue.visible = false
 			states.SClock.buttons.pause.visible = true
-			states.SClock.buttons.new.visible = false
+			states.SClock.buttons.edit.visible = false
 			states.SClock.buttons.qr.visible = true
 
 			states.SClock.buttons.left.fg = 'white'
@@ -438,7 +440,7 @@ draw = ->
 	background 'black'
 	states.SClock.uppdatera()
 	for tkey of currState.transitions
-		if tkey of currState.buttons 
+		if tkey of currState.buttons
 			currState.buttons[tkey].draw()
 		else
 			console.log 'missing',tkey
@@ -448,14 +450,14 @@ draw = ->
 		if w<h then [w,h] = [h,w]
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	rates.push frameRate()
-	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
-	sumRate += _.last(rates) - oldest
+	# rates.push frameRate()
+	# if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
+	# sumRate += _.last(rates) - oldest
 
 	# # os = navigator.appVersion
-	ptextSize 2.5
-	ptext 'A',5,5
-	ptext Math.round(sumRate),95,5
+	# ptextSize 2.5
+	# ptext 'A',5,5
+	# ptext Math.round(sumRate),95,5
 
 	# ptext currState.name,50,3
 	# # fill 'green'
