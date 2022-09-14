@@ -3,19 +3,19 @@ HOUR = 3600
 MINUTE = 60
 
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
+HEARTBEAT = 1000 # ms updates of localStorage
 
 FRAMERATE = 10
 
+settings = {}
 states = {}
 
-# rates = []
-# sumRate = 0
 
 qr = null
-timeout = false
 currState = null
 os = ''
 sound = null
+lastStorageSave = new Date()
 
 diag = 0 
 
@@ -61,7 +61,7 @@ hms = (x) ->
 #console.log hms(180.5), [0,3,0.5]
 
 class Button
-	constructor : (@text,@x,@y,@w=0,@h=0,@bg='white',@fg='black') ->
+	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
 		@visible = true
 		@x = Math.round @x
 		@y = Math.round @y
@@ -76,22 +76,50 @@ class Button
 			text @text,@x,@y
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
+class BPause extends Button
+	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
+		super x,y,w,h
+	draw : ->
+		if not settings.paused
+			fill @bg
+			rect @x-1.75,@y,3,6
+			rect @x+1.75,@y,3,6
+
+class BSettings extends Button # Kugghjul
+	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
+		super x,y,w,h
+	draw : ->
+		if settings.paused
+			fill @bg
+			translate @x,@y
+			circle 0,0,6
+			fill @fg
+			circle 0,0,3
+			fill @bg
+			for v in range 0,360,45
+				push()
+				rotate v
+				translate 3,0
+				stroke 'white'
+				rect 0,0,1,1
+				pop()
+
 class BImage extends Button
-	constructor : (@image,x,y,w,h) ->
-		super '',x,y,w,h
-		@visible = false
+	constructor : (x,y,w,h,@image) ->
+		super x,y,w,h
 	draw :  ->
 		if @image
 			w = @h * [height/width,width/height][TOGGLE]
 			image @image,@x-w/2, @y-@h/2, w, @h
 
 class BRotate extends Button
-	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> super '',x,y,w,h,bg,fg
+	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> 
+		super x,y,w,h,'',bg,fg
 
 	draw : ->
-		secs = states.SEditor.clocks[@player]
+		secs = settings.clocks[@player]
 		[h,m,s] = hms secs
-		if h >= 1 then ss = h + ':' + d2 m
+		if h >= 1 then ss = h + 'h' + d2 m
 		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
 
 		push()
@@ -104,28 +132,31 @@ class BRotate extends Button
 		text ss,0,-2
 		textSize 5
 
-		text (if h==0 then 'm:ss' else 'h:mm'),0,17
-		# if states.SEditor.bonuses[@player] > 0
-		# 	ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
-		if states.SEditor.clocks[@player] <= 0 then @bg = 'red'
+		#text (if h==0 then 'm:ss' else 'h:mm'),0,17
+		if settings.bonuses[@player] > 0
+			text '+' + trunc3(settings.bonuses[@player])+'s',0,17
+
+		if settings.clocks[@player] <= 0 then @bg = 'red'
 		pop()
 
 class BEdit extends Button
-	constructor : (text,x,y,w,h,fg='gray') -> super text,x,y,w,h,'black',fg
+	constructor : (x,y,w,h,text,fg='gray') -> 
+		super x,y,w,h,text,'black',fg
 	draw : ->
 		textSize 5
 		fill @fg
 		text @text,@x,@y
 
 class BDead extends Button
-	constructor : (text,x,y,fg='lightgray') -> super text,x,y,0,0,'black',fg
+	constructor : (x,y,text,fg='lightgray') -> 
+		super x,y,0,0,text,'black',fg
 	draw : ->
 		textSize 4
 		fill @fg
 		text @text,@x,@y
 
 class BColor extends Button
-	constructor : (@fg,x,y) -> super '',x,y
+	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
 		push()
 		textAlign CENTER,CENTER
@@ -193,126 +224,89 @@ class SWelcome extends State
 		@buttons.welcome  = new Button 'Click me!', 50,50,100,100
 
 
-# =>SClock continue pause left right =>SEditor edit
+# =>SClock pause left right =>SEditor edit
 class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock continue left pause qr right =>SEditor edit'
-		@paused = true
-		@player = -1
-		@buttons.pause.visible = false
-		@buttons.continue.visible = false
+		@createTrans '=>SClock left pause qr right =>SEditor edit'
+		settings.paused = true
+		settings.player = -1
 
 	makeButtons : ->
 		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
 		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		@buttons.pause    = new Button 'pause',    25, 50, 50, 12
-		@buttons.continue = new Button 'continue', 25, 50, 50, 12
-		@buttons.edit     = new Button 'edit',     75, 50, 50, 12
-		@buttons.qr       = new BImage qr,         75, 50, 12, 12
 
-	# mouseClicked : ->
-	# 	{x,y} = getLocalCoords()
-	# 	super x,y
-
-	# draw : ->
-	# 	push()
-	# 	super()
-	# 	pop()
+		@buttons.edit     = new BSettings 25, 50, 33, 12
+		@buttons.pause    = new BPause    50, 50, 33, 12
+		@buttons.qr       = new BImage    75, 50, 12, 12, qr
 
 	uppdatera : ->
-		#console.log 'uppdatera'
-		if @paused then return
-		clock = states.SEditor.clocks[@player]
+		if settings.paused then return
+		clock = settings.clocks[settings.player]
 		if clock > 0 then clock -= 1/FRAMERATE
 		if clock <= 0 
 			clock = 0
-			timeout = true
-		states.SEditor.clocks[@player] = clock
+			settings.timeout = true
+		settings.clocks[settings.player] = clock
 
 	message : (key) ->
 		if key == 'left'
-			if timeout then return
+			if settings.timeout then return
 			else
-				if @player in [-1,0]
+				if settings.player in [-1,0]
 					sound.play()
-					states.SEditor.clocks[0] += states.SEditor.bonuses[0]
-				@paused = false
-				@player = 1
+					settings.clocks[0] += settings.bonuses[0]
+				settings.paused = false
+				settings.player = 1
 				@buttons.left.fg = 'black'
 				@buttons.right.fg = 'white'
 
 		if key == 'right'
-			if timeout then return
+			if settings.timeout then return
 			else
-				if @player in [-1,1]
+				if settings.player in [-1,1]
 					sound.play()
-					states.SEditor.clocks[1] += states.SEditor.bonuses[1]
-				@paused = false
-				@player = 0
+					settings.clocks[1] += settings.bonuses[1]
+				settings.paused = false
+				settings.player = 0
 				@buttons.left.fg = 'white'
 				@buttons.right.fg = 'black'
 
 		if key == 'pause'
-			@paused = true
-			if @player == 0
+			settings.paused = true
+			if settings.player == 0
 				@buttons.left.fg = 'gray'
 				@buttons.right.fg = 'black'
 			else
 				@buttons.left.fg = 'black'
 				@buttons.right.fg = 'gray'
 
-		if key == 'continue'
-			@paused = false
-			if @player == 0
-				@buttons.left.fg = 'white'
-				@buttons.right.fg = 'black'
-			else
-				@buttons.left.fg = 'black'
-				@buttons.right.fg = 'white'
-
-		@buttons.pause.visible = not @paused
-		@buttons.qr.visible = not @paused
-		@buttons.continue.visible = @paused
-		@buttons.edit.visible = @paused
+		updateLocalStorage()
 		super key
 
 # =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
 class SEditor extends State
 	constructor : (name) ->
 		super name
-
-		@sums = [0,0,0,0,0,0]
-		@hcpSwap = 1
-
+		settings.sums = [0,0,0,0,0,0]
 		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor swap'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
 		@createTrans arr.join ' '
 
-		# initialisera M3+s2
-		@message 'M1'
-		@message 'M2'
-		@message 's2'
-		@message 'ok'
-
-	# mouseClicked : ->
-	# 	{x,y} = getLocalCoords()
-	# 	super x,y
-
 	makeButtons : ->
 
-		@buttons.swap       = new Button 'swap',      25,93, 22,8
-		@buttons.cancel     = new Button 'cancel',    50,93, 22,8
-		@buttons.ok         = new Button 'ok',        75,93, 22,8
-		@buttons.orange     = new BColor 'orange',    50,3
-		@buttons.white      = new BColor 'white',     50,9
-		@buttons.green      = new BColor 'green',     50,15
-		@buttons.reflection = new BDead 'reflection', 25,21
-		@buttons.bonus      = new BDead 'bonus',      66,21
-		@buttons.hcp        = new BDead 'hcp',        92,21
+		@buttons.swap       = new Button 25,93, 22,8, 'swap'
+		@buttons.cancel     = new Button 50,93, 22,8, 'cancel'
+		@buttons.ok         = new Button 75,93, 22,8, 'ok'
+		@buttons.orange     = new BColor 50, 3,'orange'
+		@buttons.white      = new BColor 50, 9,'white'
+		@buttons.green      = new BColor 50,15,'green'
+		@buttons.reflection = new BDead  25,21,'reflection'
+		@buttons.bonus      = new BDead  66,21,'bonus'
+		@buttons.hcp        = new BDead  92,21,'hcp'
 
 		for i in range 6
 			letter = 'HMSmst'[i]
@@ -320,45 +314,53 @@ class SEditor extends State
 			ysize = 100/10
 			xoff = xsize/2
 			yoff = 33+2
-			@buttons[letter] = new BDead 'HMSmst'[i], xoff+xsize*i, 26+2
+			@buttons[letter] = new BDead xoff+xsize*i, 26+2, 'HMSmst'[i]
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				@buttons[name] = new BEdit number, xoff+xsize*i, yoff+ysize*j, xsize, ysize, 'gray'
+				@buttons[name] = new BEdit xoff+xsize*i, yoff+ysize*j, xsize, ysize, number, 'gray'
 
 	message : (key) ->
 
 		if key == 'swap'
-			@hcpSwap = -@hcpSwap
+			settings.swap = -settings.swap
 		else if key == 'cancel'
 		else if key == 'ok'
-			timeout = false
-			states.SClock.buttons.continue.visible = false
-			states.SClock.buttons.pause.visible = true
-			states.SClock.buttons.edit.visible = false
-			states.SClock.buttons.qr.visible = true
+			settings.paused = true
+			settings.timeout = false
 
 			states.SClock.buttons.left.fg = 'white'
 			states.SClock.buttons.left.bg = 'orange'
 			states.SClock.buttons.right.fg = 'white'
 			states.SClock.buttons.right.bg = 'green'
 
-			@clocks  = [@players[0][0], @players[1][0]]
-			@bonuses = [@players[0][1], @players[1][1]]
+			settings.clocks  = [@players[0][0], @players[1][0]]
+			settings.bonuses = [@players[0][1], @players[1][1]]
+
+			updateLocalStorage()
 
 		else
-			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			letter = key[0]
 			col = 'HMSmst'.indexOf letter
 			number = parseInt key.slice 1
-			@sums[col] = if @buttons[key].fg == 'gray' then @sums[col]-number else @sums[col]+number
-			@buttons.ok.visible = @sums[0] + @sums[1] + @sums[2] > 0
-			@buttons.swap.visible = @sums[5] > 0
+			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
+			settings.sums[col] += if @buttons[key].fg == 'gray' then -number else number
+			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0
+			@buttons.swap.visible = settings.sums[5] > 0
 
 		@uppdatera()
 		super key
 
 	uppdatera : ->
+
+		settings.sums = [0,0,0,0,0,0]
+		for i in range 6
+			letter = 'HMSmst'[i]
+			for j in range 6
+				number = [1,2,4,8,15,30][j]
+				name = letter + number
+				if @buttons[name].fg == 'yellow' then settings.sums[i] += number
+
 		@buttons.white.text = @compact()
 		@handicap()
 		if @hcp == 0
@@ -373,17 +375,17 @@ class SEditor extends State
 		header0 = ''
 		header1 = ''
 		for i in range 0,3
-			if @sums[i]>0 then header0 += @sums[i] + headers[i]
+			if settings.sums[i]>0 then header0 += settings.sums[i] + headers[i]
 		for i in range 3,5
-			if @sums[i]>0 then header1 += @sums[i] + headers[i]
+			if settings.sums[i]>0 then header1 += settings.sums[i] + headers[i]
 		header = header0
 		if header1.length > 0 then header += ' + ' + header1
 		header
 
 	handicap : ->
-		@hcp = @hcpSwap * @sums[5] / (HCP * 60) # 0.0 .. 1.0
-		@refl = HOUR * @sums[0] + MINUTE * @sums[1] + @sums[2] # sekunder
-		@bonus =                  MINUTE * @sums[3] + @sums[4] # sekunder
+		@hcp = settings.swap * settings.sums[5] / (HCP * 60) # 0.0 .. 1.0
+		@refl = HOUR * settings.sums[0] + MINUTE * settings.sums[1] + settings.sums[2] # sekunder
+		@bonus =                          MINUTE * settings.sums[3] + settings.sums[4] # sekunder
 		@players = []
 		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
 		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
@@ -422,6 +424,7 @@ windowResized = ->
 # 	console.log 'checkStates done!'
 
 setup = ->
+
 	frameRate FRAMERATE
 	os = navigator.appVersion
 	if os.indexOf('Linux') >= 0 then os = 'Android'
@@ -443,9 +446,24 @@ setup = ->
 	angleMode DEGREES
 
 	createState 'SWelcome', SWelcome
-	createState 'SClock', SClock
+	createState 'SClock', SClock 
 	createState 'SEditor',SEditor
 
+	settings = getSettings()
+
+	states.SEditor.uppdatera()
+	for key in settings.bits
+		states.SEditor.message key
+	#states.SEditor.message 'ok'
+	states.SEditor.uppdatera()
+	
+	#dump()
+	currState = if os == 'Android' then states.SWelcome else states.SClock
+
+	#checkButtons()
+	#checkStates()
+
+dump = ->
 	# log everything
 	for skey of states 
 		state = states[skey]
@@ -456,11 +474,6 @@ setup = ->
 			button = state.buttons[tkey]
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
-
-	currState = if os == 'Android' then states.SWelcome else states.SClock
-
-	#checkButtons()
-	#checkStates()
 
 mouseClicked = -> currState.mouseClicked()
 
@@ -484,6 +497,8 @@ draw = ->
 		if w<h then [w,h] = [h,w]
 		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
+	updateLocalStorage()
+
 	# rates.push frameRate()
 	# if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
 	# sumRate += _.last(rates) - oldest
@@ -505,3 +520,36 @@ draw = ->
 
 	# currState.draw()
 
+makeBits = ->
+	bits = []
+	for key of states.SEditor.buttons
+		if key not in ['ok','cancel','swap']
+			button = states.SEditor.buttons[key]
+			if button.fg == 'yellow' then bits.push key
+	bits
+
+updateLocalStorage = ->
+	d = new Date()
+	if d - lastStorageSave < HEARTBEAT then return # ms
+	lastStorageSave = d
+	settings.bits = makeBits()
+	localStorage.settings = JSON.stringify settings
+
+getSettings = ->
+	if localStorage.settings
+		settings = JSON.parse localStorage.settings
+		settings.paused = true
+		console.log 'fetching stored settings',settings
+	else 
+		settings = {}
+		settings.bits = ['M1','M2','s2']
+		settings.clocks = [180,180]
+		settings.bonuses= [2,2]
+		settings.sums = [0,3,0,0,2,0]
+		settings.swap = 1
+		settings.player = -1 
+		settings.timeout = false
+		settings.paused = true
+		console.log 'fetching default settings',settings
+		localStorage.setItem 'settings', JSON.stringify settings
+	settings
