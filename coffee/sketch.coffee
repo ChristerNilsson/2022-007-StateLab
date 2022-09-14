@@ -90,7 +90,9 @@ class BSettings extends Button # Kugghjul
 		super x,y,w,h
 	draw : ->
 		if settings.paused
+			push()
 			translate @x,@y
+			scale [height/width,width/height][TOGGLE],1
 			fill @fg
 			circle 0,0,6
 			fill @bg
@@ -103,6 +105,7 @@ class BSettings extends Button # Kugghjul
 				stroke @fg
 				rect 0,0,1,1
 				pop()
+			pop()
 
 class BImage extends Button
 	constructor : (x,y,w,h,@image) ->
@@ -274,12 +277,8 @@ class SClock extends State
 
 		if key == 'pause'
 			settings.paused = true
-			if settings.player == 0
-				@buttons.left.fg = 'gray'
-				@buttons.right.fg = 'black'
-			else
-				@buttons.left.fg = 'black'
-				@buttons.right.fg = 'gray'
+			@buttons.left.fg = if settings.player == 0 then 'white' else 'black'
+			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		updateLocalStorage()
 		super key
