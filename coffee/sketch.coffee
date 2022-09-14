@@ -2,6 +2,8 @@ HCP = 1
 HOUR = 3600
 MINUTE = 60
 
+TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
+
 FRAMERATE = 10
 
 states = {}
@@ -16,6 +18,11 @@ os = ''
 sound = null
 
 diag = 0 
+
+getLocalCoords = -> # tar 3 microsekunder
+	matrix = drawingContext.getTransform()
+	pd = pixelDensity()
+	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
@@ -53,25 +60,6 @@ hms = (x) ->
 #console.log hms(180), [0,3,0]
 #console.log hms(180.5), [0,3,0.5]
 
-# procentuella versioner:
-pw = (x) -> x/100 * height
-ph = (y) -> y/100 * width
-pd = (s) -> s/100 * sqrt width*width + height*height
-pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
-prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
-ptext = (t,x,y) -> text t, pw(x), ph(y)
-ptextSize = (s) -> textSize pd(s)
-ptranslate = (x,y) -> translate pw(x), ph(y)
-
-# pw = (x) -> x/100 * width
-# ph = (y) -> y/100 * height
-# pd = (s) -> s/100 * sqrt width*width + height*height
-# pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
-# prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
-# ptext = (t,x,y) -> text t, pw(x), ph(y)
-# ptextSize = (s) -> textSize pd(s)
-# ptranslate = (x,y) -> translate pw(x), ph(y)
-
 class Button
 	constructor : (@text,@x,@y,@w=0,@h=0,@bg='white',@fg='black') ->
 		@visible = true
@@ -82,11 +70,11 @@ class Button
 	draw : ->
 		if @visible
 			fill @bg
-			prect @x,@y,@w,@h
-			ptextSize 4
+			rect @x,@y,@w,@h
+			textSize 4
 			fill @fg
-			ptext @text,@x,@y
-	inside : -> -@w/2 <= mouseX*100/width-@x <= @w/2 and -@h/2 <= mouseY*100/height-@y <= @h/2
+			text @text,@x,@y
+	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
 class BImage extends Button
 	constructor : (@image,x,y,w,h) ->
@@ -94,8 +82,8 @@ class BImage extends Button
 		@visible = false
 	draw :  ->
 		if @image
-			w = @h * width/height # height/width
-			pimage @image,@x-w/2, @y-@h/2, w, @h
+			w = @h * [height/width,width/height][TOGGLE]
+			image @image,@x-w/2, @y-@h/2, w, @h
 
 class BRotate extends Button
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> super '',x,y,w,h,bg,fg
@@ -107,16 +95,16 @@ class BRotate extends Button
 		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
 
 		push()
-		ptranslate @x,@y
+		translate @x,@y
 		rotate @degrees
 		fill @bg
-		prect 0,0,@w,@h
+		rect 0,0,@w,@h
 		fill @fg
-		ptextSize 18
-		ptext ss,0,-2
-		ptextSize 5
+		textSize 18
+		text ss,0,-2
+		textSize 5
 
-		ptext (if h==0 then 'm:ss' else 'h:mm'),0,17
+		text (if h==0 then 'm:ss' else 'h:mm'),0,17
 		# if states.SEditor.bonuses[@player] > 0
 		# 	ptext '+' + trunc3(states.SEditor.bonuses[@player])+'s',0,17
 		if states.SEditor.clocks[@player] <= 0 then @bg = 'red'
@@ -125,25 +113,25 @@ class BRotate extends Button
 class BEdit extends Button
 	constructor : (text,x,y,w,h,fg='gray') -> super text,x,y,w,h,'black',fg
 	draw : ->
-		ptextSize 5
+		textSize 5
 		fill @fg
-		ptext @text,@x,@y
+		text @text,@x,@y
 
 class BDead extends Button
 	constructor : (text,x,y,fg='lightgray') -> super text,x,y,0,0,'black',fg
 	draw : ->
-		ptextSize 4
+		textSize 4
 		fill @fg
-		ptext @text,@x,@y
+		text @text,@x,@y
 
 class BColor extends Button
 	constructor : (@fg,x,y) -> super '',x,y
 	draw : ->
 		push()
 		textAlign CENTER,CENTER
-		ptextSize 4
+		textSize 4
 		fill @fg
-		ptext @text,@x,@y
+		text @text,@x,@y
 		pop()
 
 # struktur för transitionssträngen:
@@ -179,8 +167,8 @@ class State
 			else
 				console.log 'missing',tkey
 
-	mouseClicked : (x,y) ->
-		console.log x,y
+	mouseClicked : ->
+		{x,y} = getLocalCoords()
 		for key of @transitions
 			if @transitions[key] == undefined then continue
 			button = @buttons[key]
@@ -217,37 +205,21 @@ class SClock extends State
 		@buttons.continue.visible = false
 
 	makeButtons : ->
-		@buttons.left     = new BRotate 0, -25-3, 100, 44, 180, 'orange', 'white', 0 # eg up
-		@buttons.right    = new BRotate 0,  25+3, 100, 44,   0, 'green',  'white', 1 # eg down
-		@buttons.pause    = new Button 'pause',    -25, 0, 50, 12
-		@buttons.continue = new Button 'continue', -25, 0, 50, 12
-		@buttons.edit     = new Button 'edit',     25,  0, 50, 12
-		@buttons.qr       = new BImage qr,         25,  0, 12, 12
+		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		@buttons.pause    = new Button 'pause',    25, 50, 50, 12
+		@buttons.continue = new Button 'continue', 25, 50, 50, 12
+		@buttons.edit     = new Button 'edit',     75, 50, 50, 12
+		@buttons.qr       = new BImage qr,         75, 50, 12, 12
 
-		# @buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		# @buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		# @buttons.pause    = new Button 'pause',    25, 50, 50, 12
-		# @buttons.continue = new Button 'continue', 25, 50, 50, 12
-		# @buttons.edit     = new Button 'edit',     75, 50, 50, 12
-		# @buttons.qr       = new BImage qr,         75, 50, 12, 12
+	# mouseClicked : ->
+	# 	{x,y} = getLocalCoords()
+	# 	super x,y
 
-	mouseClicked : ->
-		#translate ,height/2
-		x = mouseX
-		y = mouseY
-		x -= width/2
-		y -= height/2
-		super x,y
-		#rotate 90
-
-
-
-	draw : ->
-		push()
-		translate width/2,height/2
-		#rotate 90
-		super()
-		pop()
+	# draw : ->
+	# 	push()
+	# 	super()
+	# 	pop()
 
 	uppdatera : ->
 		#console.log 'uppdatera'
@@ -325,6 +297,10 @@ class SEditor extends State
 		@message 'M2'
 		@message 's2'
 		@message 'ok'
+
+	# mouseClicked : ->
+	# 	{x,y} = getLocalCoords()
+	# 	super x,y
 
 	makeButtons : ->
 
@@ -412,7 +388,6 @@ class SEditor extends State
 		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
 		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
 
-
 ###################################
 
 preload = -> 
@@ -458,6 +433,8 @@ setup = ->
 	if os == 'Mac' then textFont 'Verdana'
 	if os == 'Windows' then textFont 'Lucida Sans Unicode'
 
+	TOGGLE = if os == 'Mac' then 1 else 0
+
 	diag = sqrt width*width + height*height
 
 	background 'black'
@@ -488,6 +465,15 @@ setup = ->
 mouseClicked = -> currState.mouseClicked()
 
 draw = ->
+
+	if TOGGLE == 0
+		scale width/100,height/100 # portrait
+	else
+		rotate 90
+		translate 0,-width
+		scale height/100,width/100 # Landscape
+
+	strokeWeight 1/(height/100)
 	push()
 	background 'black'
 	states.SClock.uppdatera()
@@ -503,19 +489,19 @@ draw = ->
 	# sumRate += _.last(rates) - oldest
 
 	# # os = navigator.appVersion
-	# ptextSize 2.5
-	# ptext 'A',5,5
-	# ptext Math.round(sumRate),95,5
+	# textSize 2.5
+	# text 'A',5,5
+	# text Math.round(sumRate),95,5
 
-	# ptext currState.name,50,3
+	# text currState.name,50,3
 	# # fill 'green'
-	# ptext round3(states.SEditor.bonuses[0]),10,3
-	# ptext round3(states.SEditor.clocks[0]),25,3
-	# ptext round3(states.SEditor.clocks[1]),75,3
-	# ptext round3(states.SEditor.bonuses[1]),90,3
+	# text round3(states.SEditor.bonuses[0]),10,3
+	# text round3(states.SEditor.clocks[0]),25,3
+	# text round3(states.SEditor.clocks[1]),75,3
+	# text round3(states.SEditor.bonuses[1]),90,3
 
-	# ptext states.SClock.paused,30,2.5
-	# ptext states.SClock.player,70,2.5
+	# text states.SClock.paused,30,2.5
+	# text states.SClock.player,70,2.5
 
 	# currState.draw()
 
