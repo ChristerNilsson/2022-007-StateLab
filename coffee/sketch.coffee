@@ -54,14 +54,23 @@ hms = (x) ->
 #console.log hms(180.5), [0,3,0.5]
 
 # procentuella versioner:
-pw = (x) -> x/100 * width
-ph = (y) -> y/100 * height
+pw = (x) -> x/100 * height
+ph = (y) -> y/100 * width
 pd = (s) -> s/100 * sqrt width*width + height*height
 pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
 prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
 ptext = (t,x,y) -> text t, pw(x), ph(y)
 ptextSize = (s) -> textSize pd(s)
 ptranslate = (x,y) -> translate pw(x), ph(y)
+
+# pw = (x) -> x/100 * width
+# ph = (y) -> y/100 * height
+# pd = (s) -> s/100 * sqrt width*width + height*height
+# pimage = (img,x,y,w,h) -> image img, pw(x), ph(y), pw(w), ph(h)
+# prect = (x,y,w,h) -> rect pw(x), ph(y), pw(w), ph(h)
+# ptext = (t,x,y) -> text t, pw(x), ph(y)
+# ptextSize = (s) -> textSize pd(s)
+# ptranslate = (x,y) -> translate pw(x), ph(y)
 
 class Button
 	constructor : (@text,@x,@y,@w=0,@h=0,@bg='white',@fg='black') ->
@@ -85,7 +94,7 @@ class BImage extends Button
 		@visible = false
 	draw :  ->
 		if @image
-			w = @h * height/width # quadratic qr
+			w = @h * width/height # height/width
 			pimage @image,@x-w/2, @y-@h/2, w, @h
 
 class BRotate extends Button
@@ -164,6 +173,21 @@ class State
 		currState = states[@transitions[key]]
 
 	draw : ->
+		for tkey of @transitions
+			if tkey of @buttons
+				@buttons[tkey].draw()
+			else
+				console.log 'missing',tkey
+
+	mouseClicked : (x,y) ->
+		console.log x,y
+		for key of @transitions
+			if @transitions[key] == undefined then continue
+			button = @buttons[key]
+			if button.visible and button.inside x, y
+				@message key
+				break
+
 
 class SWelcome extends State
 	constructor : (name) ->
@@ -193,12 +217,37 @@ class SClock extends State
 		@buttons.continue.visible = false
 
 	makeButtons : ->
-		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		@buttons.pause    = new Button 'pause',    25, 50, 50, 12
-		@buttons.continue = new Button 'continue', 25, 50, 50, 12
-		@buttons.edit     = new Button 'edit',      75, 50, 50, 12
-		@buttons.qr       = new BImage qr,         75, 50, 12, 12
+		@buttons.left     = new BRotate 0, -25-3, 100, 44, 180, 'orange', 'white', 0 # eg up
+		@buttons.right    = new BRotate 0,  25+3, 100, 44,   0, 'green',  'white', 1 # eg down
+		@buttons.pause    = new Button 'pause',    -25, 0, 50, 12
+		@buttons.continue = new Button 'continue', -25, 0, 50, 12
+		@buttons.edit     = new Button 'edit',     25,  0, 50, 12
+		@buttons.qr       = new BImage qr,         25,  0, 12, 12
+
+		# @buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		# @buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		# @buttons.pause    = new Button 'pause',    25, 50, 50, 12
+		# @buttons.continue = new Button 'continue', 25, 50, 50, 12
+		# @buttons.edit     = new Button 'edit',     75, 50, 50, 12
+		# @buttons.qr       = new BImage qr,         75, 50, 12, 12
+
+	mouseClicked : ->
+		#translate ,height/2
+		x = mouseX
+		y = mouseY
+		x -= width/2
+		y -= height/2
+		super x,y
+		#rotate 90
+
+
+
+	draw : ->
+		push()
+		translate width/2,height/2
+		#rotate 90
+		super()
+		pop()
 
 	uppdatera : ->
 		#console.log 'uppdatera'
@@ -374,28 +423,28 @@ windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
-checkButtons = ->
-	console.log 'checkButtons started'
-	for bkey of buttons
-		button = buttons[bkey]
-		found = false
-		for skey of states
-			state = states[skey]
-			if bkey of state.transitions then found = true
-		if not found then console.log '  Button',bkey,'not used by any state'
-	console.log 'checkButtons done!'
+# checkButtons = ->
+# 	console.log 'checkButtons started'
+# 	for bkey of buttons
+# 		button = buttons[bkey]
+# 		found = false
+# 		for skey of states
+# 			state = states[skey]
+# 			if bkey of state.transitions then found = true
+# 		if not found then console.log '  Button',bkey,'not used by any state'
+# 	console.log 'checkButtons done!'
 
-checkStates = ->
-	console.log 'checkStates started'
-	for skey of states
-		state = states[skey]
-		found = false
-		for tkey of state.transitions
-			transition = state.transitions[tkey]
-			if transition != undefined and transition not of states then console.log transition,'not found'
-			if tkey of buttons then found = true else info = tkey
-		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
-	console.log 'checkStates done!'
+# checkStates = ->
+# 	console.log 'checkStates started'
+# 	for skey of states
+# 		state = states[skey]
+# 		found = false
+# 		for tkey of state.transitions
+# 			transition = state.transitions[tkey]
+# 			if transition != undefined and transition not of states then console.log transition,'not found'
+# 			if tkey of buttons then found = true else info = tkey
+# 		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
+# 	console.log 'checkStates done!'
 
 setup = ->
 	frameRate FRAMERATE
@@ -436,15 +485,14 @@ setup = ->
 	#checkButtons()
 	#checkStates()
 
+mouseClicked = -> currState.mouseClicked()
+
 draw = ->
+	push()
 	background 'black'
 	states.SClock.uppdatera()
-	for tkey of currState.transitions
-		if tkey of currState.buttons
-			currState.buttons[tkey].draw()
-		else
-			console.log 'missing',tkey
-
+	currState.draw()
+	pop()
 	# debug
 	aspect = (w,h,y) ->
 		if w<h then [w,h] = [h,w]
@@ -469,12 +517,5 @@ draw = ->
 	# ptext states.SClock.paused,30,2.5
 	# ptext states.SClock.player,70,2.5
 
-	currState.draw()
+	# currState.draw()
 
-mouseClicked = ->
-	for key of currState.transitions
-		if currState.transitions[key] == undefined then continue
-		button = currState.buttons[key]
-		if button.visible and button.inside mouseX, mouseY 
-			currState.message key
-			break
