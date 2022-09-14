@@ -10,6 +10,8 @@ FRAMERATE = 10
 settings = {}
 states = {}
 
+start = new Date()
+hist = []
 
 qr = null
 currState = null
@@ -256,6 +258,8 @@ class SClock extends State
 		if key == 'left'
 			if settings.timeout then return
 			else
+				hist.push 'L ' + (new Date() - start)
+				start = new Date()
 				if settings.player in [-1,0]
 					sound.play()
 					settings.clocks[0] += settings.bonuses[0]
@@ -267,6 +271,8 @@ class SClock extends State
 		if key == 'right'
 			if settings.timeout then return
 			else
+				hist.push ' R ' + (new Date() - start)
+				start = new Date()
 				if settings.player in [-1,1]
 					sound.play()
 					settings.clocks[1] += settings.bonuses[1]
@@ -279,6 +285,12 @@ class SClock extends State
 			settings.paused = true
 			@buttons.left.fg = if settings.player == 0 then 'white' else 'black'
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
+
+		if key == 'qr'
+			s = ''
+			for item in hist
+				if item[0] == 'L' then s += item else s += item + '\n'
+			navigator.clipboard.writeText s
 
 		updateLocalStorage()
 		super key
@@ -338,6 +350,9 @@ class SEditor extends State
 
 			settings.clocks  = [@players[0][0], @players[1][0]]
 			settings.bonuses = [@players[0][1], @players[1][1]]
+
+			start = new Date()
+			hist = []
 
 			updateLocalStorage()
 
