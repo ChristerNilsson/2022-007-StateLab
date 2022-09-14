@@ -221,10 +221,9 @@ class SWelcome extends State
 		super key
 
 	makeButtons : ->
-		@buttons.welcome  = new Button 'Click me!', 50,50,100,100
+		@buttons.welcome = new Button 50,50,100,100, 'Click me!'
 
 
-# =>SClock pause left right =>SEditor edit
 class SClock extends State
 
 	constructor : (name) ->
@@ -234,18 +233,18 @@ class SClock extends State
 		settings.player = -1
 
 	makeButtons : ->
-		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		@buttons.left  = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		@buttons.right = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
 
-		@buttons.pause    = new BPause    25, 50, 34, 12, 'white', 'black'
-		@buttons.qr       = new BImage    50, 50, 33, 12, qr
-		@buttons.edit     = new BSettings 75, 50, 34, 12, 'white', 'black'
+		@buttons.pause = new BPause    25, 50, 34, 12, 'white', 'black'
+		@buttons.qr    = new BImage    50, 50, 33, 12, qr
+		@buttons.edit  = new BSettings 75, 50, 34, 12, 'white', 'black'
 
 	uppdatera : ->
 		if settings.paused then return
 		clock = settings.clocks[settings.player]
 		if clock > 0 then clock -= 1/FRAMERATE
-		if clock <= 0 
+		if clock <= 0
 			clock = 0
 			settings.timeout = true
 		settings.clocks[settings.player] = clock
@@ -434,6 +433,8 @@ setup = ->
 	if os.indexOf('Linux') >= 0 then os = 'Android'
 	if os.indexOf('Windows') >= 0 then os = 'Windows'
 	if os.indexOf('Mac') >= 0 then os = 'Mac'
+
+	# os = 'Android'
 
 	createCanvas innerWidth,innerHeight
 
