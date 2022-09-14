@@ -81,7 +81,7 @@ class BPause extends Button
 		super x,y,w,h
 	draw : ->
 		if not settings.paused
-			fill @bg
+			fill @fg
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
 
@@ -90,17 +90,17 @@ class BSettings extends Button # Kugghjul
 		super x,y,w,h
 	draw : ->
 		if settings.paused
-			fill @bg
 			translate @x,@y
-			circle 0,0,6
 			fill @fg
-			circle 0,0,3
+			circle 0,0,6
 			fill @bg
+			circle 0,0,3
+			fill @fg
 			for v in range 0,360,45
 				push()
 				rotate v
 				translate 3,0
-				stroke 'white'
+				stroke @fg
 				rect 0,0,1,1
 				pop()
 
@@ -110,7 +110,7 @@ class BImage extends Button
 	draw :  ->
 		if @image
 			w = @h * [height/width,width/height][TOGGLE]
-			image @image,@x-w/2, @y-@h/2, w, @h
+			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
 
 class BRotate extends Button
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> 
@@ -121,16 +121,16 @@ class BRotate extends Button
 		[h,m,s] = hms secs
 		if h >= 1 then ss = h + 'h' + d2 m
 		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
-
+		noStroke()
 		push()
 		translate @x,@y
 		rotate @degrees
 		fill @bg
 		rect 0,0,@w,@h
 		fill @fg
-		textSize 18
+		textSize 18+9
 		text ss,0,-2
-		textSize 5
+		textSize 5+3
 
 		#text (if h==0 then 'm:ss' else 'h:mm'),0,17
 		if settings.bonuses[@player] > 0
@@ -237,9 +237,9 @@ class SClock extends State
 		@buttons.left     = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
 		@buttons.right    = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
 
-		@buttons.edit     = new BSettings 25, 50, 33, 12
-		@buttons.pause    = new BPause    50, 50, 33, 12
-		@buttons.qr       = new BImage    75, 50, 12, 12, qr
+		@buttons.pause    = new BPause    25, 50, 34, 12, 'white', 'black'
+		@buttons.qr       = new BImage    50, 50, 33, 12, qr
+		@buttons.edit     = new BSettings 75, 50, 34, 12, 'white', 'black'
 
 	uppdatera : ->
 		if settings.paused then return
@@ -284,6 +284,10 @@ class SClock extends State
 
 		updateLocalStorage()
 		super key
+
+	draw : ->
+		background 'white'
+		super()
 
 # =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
 class SEditor extends State
@@ -433,6 +437,7 @@ setup = ->
 
 	createCanvas innerWidth,innerHeight
 
+	if os == 'Android' then textFont 'Droid Sans'
 	if os == 'Mac' then textFont 'Verdana'
 	if os == 'Windows' then textFont 'Lucida Sans Unicode'
 
