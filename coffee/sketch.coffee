@@ -1,3 +1,6 @@
+# TODO
+# Halvering av frameRate (1000 -> 435) inträffar om man går från fullscreen till normal på Android
+
 HCP = 1
 HOUR = 3600
 MINUTE = 60
@@ -220,21 +223,21 @@ class State
 				break
 
 
-class SWelcome extends State
-	constructor : (name) ->
-		super name
-		@createTrans '=>SClock welcome'
-		console.log @
+# class SWelcome extends State
+# 	constructor : (name) ->
+# 		super name
+# 		@createTrans '=>SClock welcome'
+# 		console.log @
 
-	message : (key) ->
-		if key == 'welcome'
-			toggleFullScreen()
-			#fullscreen true
-			resizeCanvas innerWidth, innerHeight
-		super key
+# 	message : (key) ->
+# 		if key == 'welcome'
+# 			toggleFullScreen()
+# 			#fullscreen true
+# 			resizeCanvas innerWidth, innerHeight
+# 		super key
 
-	makeButtons : ->
-		@buttons.welcome = new Button 50,50,100,100, 'Click me!'
+# 	makeButtons : ->
+# 		@buttons.welcome = new Button 50,50,100,100, 'Click me!'
 
 
 class SClock extends State
@@ -472,7 +475,7 @@ setup = ->
 	rectMode CENTER
 	angleMode DEGREES
 
-	createState 'SWelcome', SWelcome
+	#createState 'SWelcome', SWelcome
 	createState 'SClock', SClock 
 	createState 'SEditor',SEditor
 
@@ -485,13 +488,13 @@ setup = ->
 	states.SEditor.uppdatera()
 	
 	#dump()
-	currState = if os == 'Android' then states.SWelcome else states.SClock
+	#currState = if os == 'Android' then states.SWelcome else states.SClock
+	currState = states.SClock
 
 	#checkButtons()
 	#checkStates()
 
-dump = ->
-	# log everything
+dump = -> # log everything
 	for skey of states 
 		state = states[skey]
 		console.log ''
@@ -513,7 +516,7 @@ draw = ->
 		translate 0,-width
 		scale height/100,width/100 # Landscape
 
-	strokeWeight 1/(height/100)
+	strokeWeight 100/height
 	push()
 	background 'black'
 	states.SClock.uppdatera()
@@ -522,7 +525,7 @@ draw = ->
 	# debug
 	aspect = (w,h,y) ->
 		if w<h then [w,h] = [h,w]
-		ptext "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
+		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
 	updateLocalStorage()
 
@@ -532,7 +535,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	textSize 2.5
-	text 'A',5,5
+	text 'Click QR',5,5
 	text Math.round(sumRate),95,5
 
 	# text currState.name,50,3
