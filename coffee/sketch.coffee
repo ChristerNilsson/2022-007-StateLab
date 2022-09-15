@@ -8,7 +8,7 @@ MINUTE = 60
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
 
-FRAMERATE = 60 # 10
+FRAMERATE = 30 # 10
 
 settings = {}
 states = {}
@@ -29,12 +29,12 @@ getLocalCoords = -> # tar 3 microsekunder
 	pd = pixelDensity()
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
-toggleFullScreen = ->
-	doc = window.document
-	docEl = doc.documentElement
-	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
-	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
-		requestFullScreen.call docEl
+# toggleFullScreen = ->
+# 	doc = window.document
+# 	docEl = doc.documentElement
+# 	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
+# 	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
+# 		requestFullScreen.call docEl
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
@@ -140,6 +140,11 @@ class BRotate extends Button
 		push()
 		translate @x,@y
 		rotate @degrees
+
+		if settings.timeout and settings.player == @player
+			@bg = 'red'
+			@fg = 'black'
+
 		fill @bg
 		rect 0,0,@w,@h
 		fill @fg
@@ -151,7 +156,9 @@ class BRotate extends Button
 		if settings.bonuses[@player] > 0
 			text '+' + trunc3(settings.bonuses[@player])+'s',0,17
 
-		if settings.clocks[@player] <= 0 then @bg = 'red'
+		# if settings.clocks[@player] <= 0 
+		# 	@fg = 'black'
+		# 	@bg = 'red'
 		pop()
 
 class BEdit extends Button
@@ -298,8 +305,8 @@ class SClock extends State
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		if key == 'qr'
-			toggleFullScreen()
-			# fullscreen true
+			#toggleFullScreen()
+			fullscreen true
 			resizeCanvas innerWidth, innerHeight
 
 		updateLocalStorage()
@@ -535,7 +542,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	textSize 2.5
-	text 'Click QR => Fullscreen',50,12
+	#text 'Click QR => Fullscreen',50,12
 	text Math.round(sumRate),95,5
 
 	# text currState.name,50,3
