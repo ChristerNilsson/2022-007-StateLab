@@ -29,8 +29,10 @@ getLocalCoords = -> # tar 3 microsekunder
 	pd = pixelDensity()
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
-trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
+
+trunc3 = (x) -> Math.trunc(x*1000)/1000
+console.assert trunc3(12.345678)==12.345
 
 pretty = (tot) ->
 	s = tot % 60
@@ -43,15 +45,18 @@ pretty = (tot) ->
 	if trunc3(m)>0 then header += trunc3(m) + 'm'
 	if trunc3(s)>0 then header += trunc3(s) + 's'
 	header
+console.assert pretty(3601) == '1h1s'
+console.assert pretty(123) == '2m3s'
 
 prettyPair = (a,b) ->
 	separator = if pretty(b) != '' then ' + ' else ''
 	pretty(a) + separator + pretty(b)
+console.assert prettyPair(3601,123) == '1h1s + 2m3s'
 
 d2 = (x) ->
 	x = Math.trunc x
 	if x < 10 then '0'+x else x
-#console.log d2(3), '03'
+console.assert d2(3) == '03'
 
 hms = (x) ->
 	orig = x
@@ -62,8 +67,8 @@ hms = (x) ->
 	h = x
 	if orig < 10 then s = Math.trunc(s*10)/10 
 	[h,m,s] 
-#console.log hms(180), [0,3,0]
-#console.log hms(180.5), [0,3,0.5]
+chai.assert.deepEqual hms(180), [0,3,0]
+chai.assert.deepEqual hms(180.5), [0,3,0.5]
 
 class Button
 	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
