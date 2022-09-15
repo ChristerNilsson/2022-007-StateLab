@@ -259,7 +259,7 @@ class SClock extends State
 	uppdatera : ->
 		if settings.paused then return
 		clock = settings.clocks[settings.player]
-		if clock > 0 then clock -= 1/FRAMERATE
+		if clock > 0 then clock -= 1/frameRate()
 		if clock <= 0
 			clock = 0
 			settings.timeout = true
@@ -535,7 +535,7 @@ draw = ->
 
 	# # os = navigator.appVersion
 	textSize 2.5
-	text 'Click QR',5,5
+	text 'Click QR => Fullscreen',50,12
 	text Math.round(sumRate),95,5
 
 	# text currState.name,50,3
