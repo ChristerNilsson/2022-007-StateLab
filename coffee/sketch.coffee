@@ -8,7 +8,7 @@ MINUTE = 60
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
 
-FRAMERATE = 10
+FRAMERATE = 60 # 10
 
 settings = {}
 states = {}
