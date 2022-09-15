@@ -10,14 +10,14 @@ FRAMERATE = 10
 settings = {}
 states = {}
 
-start = new Date()
-hist = []
-
 qr = null
 currState = null
 os = ''
 sound = null
 lastStorageSave = new Date()
+
+rates = []
+sumRate = 0
 
 diag = 0 
 
@@ -258,8 +258,8 @@ class SClock extends State
 		if key == 'left'
 			if settings.timeout then return
 			else
-				hist.push 'L ' + (new Date() - start)
-				start = new Date()
+				#hist.push 'L ' + (new Date() - start)
+				#start = new Date()
 				if settings.player in [-1,0]
 					sound.play()
 					settings.clocks[0] += settings.bonuses[0]
@@ -271,8 +271,8 @@ class SClock extends State
 		if key == 'right'
 			if settings.timeout then return
 			else
-				hist.push ' R ' + (new Date() - start)
-				start = new Date()
+				#hist.push ' R ' + (new Date() - start)
+				#start = new Date()
 				if settings.player in [-1,1]
 					sound.play()
 					settings.clocks[1] += settings.bonuses[1]
@@ -287,10 +287,8 @@ class SClock extends State
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		if key == 'qr'
-			s = ''
-			for item in hist
-				if item[0] == 'L' then s += item else s += item + '\n'
-			navigator.clipboard.writeText s
+			fullscreen true
+			resizeCanvas innerWidth, innerHeight
 
 		updateLocalStorage()
 		super key
@@ -351,8 +349,8 @@ class SEditor extends State
 			settings.clocks  = [@players[0][0], @players[1][0]]
 			settings.bonuses = [@players[0][1], @players[1][1]]
 
-			start = new Date()
-			hist = []
+			#start = new Date()
+			#hist = []
 
 			updateLocalStorage()
 
@@ -519,14 +517,14 @@ draw = ->
 
 	updateLocalStorage()
 
-	# rates.push frameRate()
-	# if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
-	# sumRate += _.last(rates) - oldest
+	rates.push frameRate()
+	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
+	sumRate += _.last(rates) - oldest
 
 	# # os = navigator.appVersion
-	# textSize 2.5
-	# text 'A',5,5
-	# text Math.round(sumRate),95,5
+	textSize 2.5
+	text 'A',5,5
+	text Math.round(sumRate),95,5
 
 	# text currState.name,50,3
 	# # fill 'green'
