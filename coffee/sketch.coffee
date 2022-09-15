@@ -1,5 +1,5 @@
 # TODO
-# Halvering av frameRate (1000 -> 435) inträffar om man går från fullscreen till normal på Android
+# Försämring av frameRate inträffar om man går från fullscreen till normal på Android
 
 HCP = 1
 HOUR = 3600
@@ -28,13 +28,6 @@ getLocalCoords = -> # tar 3 microsekunder
 	matrix = drawingContext.getTransform()
 	pd = pixelDensity()
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
-
-# toggleFullScreen = ->
-# 	doc = window.document
-# 	docEl = doc.documentElement
-# 	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
-# 	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
-# 		requestFullScreen.call docEl
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
@@ -156,9 +149,6 @@ class BRotate extends Button
 		if settings.bonuses[@player] > 0
 			text '+' + trunc3(settings.bonuses[@player])+'s',0,17
 
-		# if settings.clocks[@player] <= 0 
-		# 	@fg = 'black'
-		# 	@bg = 'red'
 		pop()
 
 class BEdit extends Button
@@ -186,14 +176,6 @@ class BColor extends Button
 		fill @fg
 		text @text,@x,@y
 		pop()
-
-# struktur för transitionssträngen:
-# =>target0 msg0 msg1 =>target1 msg2 msg3 => msg4
-# @transitions[msg0] = target0
-# @transitions[msg1] = target0
-# @transitions[msg2] = target1
-# @transitions[msg3] = target1
-# @transitions[msg4] = undefined
 
 class State
 	constructor : (@name) -> 
@@ -230,23 +212,6 @@ class State
 				break
 
 
-# class SWelcome extends State
-# 	constructor : (name) ->
-# 		super name
-# 		@createTrans '=>SClock welcome'
-# 		console.log @
-
-# 	message : (key) ->
-# 		if key == 'welcome'
-# 			toggleFullScreen()
-# 			#fullscreen true
-# 			resizeCanvas innerWidth, innerHeight
-# 		super key
-
-# 	makeButtons : ->
-# 		@buttons.welcome = new Button 50,50,100,100, 'Click me!'
-
-
 class SClock extends State
 
 	constructor : (name) ->
@@ -270,14 +235,14 @@ class SClock extends State
 		if clock <= 0
 			clock = 0
 			settings.timeout = true
+			settings.paused = true
+
 		settings.clocks[settings.player] = clock
 
 	message : (key) ->
 		if key == 'left'
 			if settings.timeout then return
 			else
-				#hist.push 'L ' + (new Date() - start)
-				#start = new Date()
 				if settings.player in [-1,0]
 					sound.play()
 					settings.clocks[0] += settings.bonuses[0]
@@ -289,8 +254,6 @@ class SClock extends State
 		if key == 'right'
 			if settings.timeout then return
 			else
-				#hist.push ' R ' + (new Date() - start)
-				#start = new Date()
 				if settings.player in [-1,1]
 					sound.play()
 					settings.clocks[1] += settings.bonuses[1]
@@ -305,7 +268,6 @@ class SClock extends State
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		if key == 'qr'
-			#toggleFullScreen()
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
 
@@ -367,9 +329,6 @@ class SEditor extends State
 
 			settings.clocks  = [@players[0][0], @players[1][0]]
 			settings.bonuses = [@players[0][1], @players[1][1]]
-
-			#start = new Date()
-			#hist = []
 
 			updateLocalStorage()
 
@@ -482,7 +441,6 @@ setup = ->
 	rectMode CENTER
 	angleMode DEGREES
 
-	#createState 'SWelcome', SWelcome
 	createState 'SClock', SClock 
 	createState 'SEditor',SEditor
 
@@ -491,11 +449,9 @@ setup = ->
 	states.SEditor.uppdatera()
 	for key in settings.bits
 		states.SEditor.message key
-	#states.SEditor.message 'ok'
 	states.SEditor.uppdatera()
 	
 	#dump()
-	#currState = if os == 'Android' then states.SWelcome else states.SClock
 	currState = states.SClock
 
 	#checkButtons()
