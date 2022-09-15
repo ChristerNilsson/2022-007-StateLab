@@ -26,6 +26,13 @@ getLocalCoords = -> # tar 3 microsekunder
 	pd = pixelDensity()
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
+toggleFullScreen = ->
+	doc = window.document
+	docEl = doc.documentElement
+	requestFullScreen = docEl.requestFullscreen or docEl.mozRequestFullScreen or docEl.webkitRequestFullScreen or docEl.msRequestFullscreen
+	if not doc.fullscreenElement and not doc.mozFullScreenElement and not doc.webkitFullscreenElement and not doc.msFullscreenElement
+		requestFullScreen.call docEl
+
 trunc3 = (x) -> Math.trunc(x*1000)/1000
 createState = (key,klass) -> states[key] = new klass key
 
@@ -221,7 +228,8 @@ class SWelcome extends State
 
 	message : (key) ->
 		if key == 'welcome'
-			fullscreen true
+			toggleFullScreen()
+			#fullscreen true
 			resizeCanvas innerWidth, innerHeight
 		super key
 
@@ -287,7 +295,8 @@ class SClock extends State
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		if key == 'qr'
-			fullscreen true
+			toggleFullScreen()
+			# fullscreen true
 			resizeCanvas innerWidth, innerHeight
 
 		updateLocalStorage()
