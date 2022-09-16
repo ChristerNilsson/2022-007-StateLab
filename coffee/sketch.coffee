@@ -171,6 +171,13 @@ class BDead extends Button
 		textSize 4
 		fill @fg
 		text @text,@x,@y
+		
+class BShow extends BDead
+	constructor : (x,y,fg='lightgray') -> 
+		super x,y,0,0,'','black',fg
+	draw : ->
+		@text = settings.show
+		super()
 
 class BColor extends Button
 	constructor : (x,y,@fg) -> super x,y,0,0
@@ -221,7 +228,7 @@ class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock left pause qr right =>SEditor edit'
+		@createTrans '=>SClock left pause qr right =>SEditor edit => show'
 		settings.paused = true
 		settings.player = -1
 
@@ -229,9 +236,10 @@ class SClock extends State
 		@buttons.left  = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
 		@buttons.right = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
 
-		@buttons.pause = new BPause    25, 50, 34, 12, 'white', 'black'
+		@buttons.show  = new BShow     22, 50, 'black'
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
-		@buttons.edit  = new BSettings 75, 50, 34, 12, 'white', 'black'
+		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
+		@buttons.edit  = new BSettings 83, 50, 17, 12, 'white', 'black'
 
 	uppdatera : ->
 		if settings.paused then return
@@ -331,6 +339,7 @@ class SEditor extends State
 			states.SClock.buttons.left.bg = 'orange'
 			states.SClock.buttons.right.fg = 'white'
 			states.SClock.buttons.right.bg = 'green'
+			states.SClock.buttons.show.text = settings.show
 
 			settings.clocks  = [@players[0][0], @players[1][0]]
 			settings.bonuses = [@players[0][1], @players[1][1]]
@@ -344,7 +353,7 @@ class SEditor extends State
 			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 			settings.sums[col] += if @buttons[key].fg == 'gray' then -number else number
 			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0
-			@buttons.swap.visible = settings.sums[5] > 0
+			@buttons.swap.visible = false #settings.sums[5] > 0
 
 		@uppdatera()
 		super key
@@ -359,7 +368,9 @@ class SEditor extends State
 				name = letter + number
 				if @buttons[name].fg == 'yellow' then settings.sums[i] += number
 
-		@buttons.white.text = @compact()
+		settings.show = @compact()
+		@buttons.white.text = settings.show
+		
 		@handicap()
 		if @hcp == 0
 			@buttons.orange.text = ''
@@ -377,7 +388,8 @@ class SEditor extends State
 		for i in range 3,5
 			if settings.sums[i]>0 then header1 += settings.sums[i] + headers[i]
 		header = header0
-		if header1.length > 0 then header += ' + ' + header1
+		if header1.length > 0 then header += '+' + header1
+		if settings.sums[5] > 0 then header += '\n' + settings.sums[5]
 		header
 
 	handicap : ->
@@ -543,6 +555,7 @@ getSettings = ->
 		console.log 'fetching stored settings',settings
 	else 
 		settings = {}
+		settings.show = '3m2s'
 		settings.bits = ['M1','M2','s2']
 		settings.clocks = [180,180]
 		settings.bonuses= [2,2]
