@@ -24,6 +24,7 @@ sumRate = 0
 
 diag = 0 
 
+
 getLocalCoords = -> # tar 3 microsekunder
 	matrix = drawingContext.getTransform()
 	pd = pixelDensity()
@@ -444,9 +445,12 @@ setup = ->
 	# os = 'Android'
 
 	canvas = createCanvas innerWidth,innerHeight
-	canvas.touchMoved = (e) ->
-		e.preventDefault()
-		false
+	disableBodyScroll = bodyScrollLock.disableBodyScroll
+	enableBodyScroll = bodyScrollLock.enableBodyScroll
+	disableBodyScroll canvas
+	# canvas.touchMoved = (e) ->
+	# 	e.preventDefault()
+	# 	false
 
 	if os == 'Android' then textFont 'Droid Sans'
 	if os == 'Mac' then textFont 'Verdana'
@@ -567,3 +571,8 @@ getSettings = ->
 		console.log 'fetching default settings',settings
 		localStorage.settings = JSON.stringify settings
 	settings
+
+# arr = []
+# for i in range 60
+# 	arr.push "#{i} #{Math.round((60+i)/(60-i)*1000)/1000}"
+# console.log arr.join "\n"
