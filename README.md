@@ -1,17 +1,15 @@
-# 2022-007-StateLab
+# Chess clock with handicaps
+* Click on any player to start, that is the green or orange button
+* Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PNG" width="25"> button
 
-## Chess clock
-* Click on any player to start
-* Clicking **pause** will display the **new** button
-
-![Main screen](Clock.PNG)
+![Main screen](Clock1.PNG)
 
 ## Settings
 * Choose hours, minutes and seconds using columns **H**, **M** and **S**
 * Optionally, choose bonus time, minutes and seconds, using columns **m** and **s**
 * Also optionally, choose a handicap using column **t**
 
-![Settings](edit.PNG)
+![Settings](Clock2.PNG)
 
 ## How to enter numbers
 ```
@@ -32,56 +30,32 @@
 15
 ..
 59 = 2 + 4 + 8 + 15 + 30
-
 ```
 
 ## Handicap system
-* No handicap is default
-* The handicap is based on sixtieths, 0/60 to 60/60
+* The handicap is based on sixtieths, 0/60 to 59/60. (60/60 gives zero time to the stronger player)
 * The total game time is the same, before and after the handicap
-* If you want to relate ELO difference to sixtieths, use a separate table or formula, as there are several alternatives
-
-## How to find a handicap between two persons
-1. Start with handicap 0.
-1. Play a game with your friend
-1. Adjust the handicap with first 30, then 15, then 8, 4, 2, 1, 1, 1, 1...
-1. Repeat from step 2 until the handicap is stable
 
 ### Example:
-* You have decided on a game using 10m + 5s, and would like to give away 5m to the other player
-* Using 5m/10m = 30/60, the adjusted times will be 5m + 2.5s and 15m + 7.5s
+* You have decided on a game using 3m + 2s, and would like to give away a quarter of your time to the other player
+* Choosing the handicap 15/60, the adjusted times will be 3m45s + 2.5s and 2m15s + 1.5s
+* Please note, the total time is still 6m + 4s
 
-### The QR code
-* Contains the URL for the application
-* Use your camera or QR reader app
-* Optimized for Android
+### Handicap Settings
 
-### Definitions
-* reflection = the time you have left
-* bonus = time that will be added for every move. (Fischer System)
-* hcp = handicap. Expressed in sixtieths (1/60)
-* swap = When using handicap, swaps the times for the players
-* h = hour 0 .. 60
-* m = minute 0 .. 60
-* s = second 0 .. 60
-* t = handicap 0 .. 60
+![Handicap Settings](Clock4.PNG)
 
-### Repeat Game
-* Click **pause**
-* Click **new**
-* Click **ok**
-* Click one of the players to start
+### The resulting times
 
-### Pause the clock
-* Click **pause**
-* Click **continue**
+![Handicap Clock](Clock3.PNG)
 
-### Go to Settings
-* Click **new**
-* Choose numbers
-* Click **ok**
+### How to find a handicap between two persons
+1. Start with handicap 0
+1. Play a game with your friend until someone wins
+1. Adjust the handicap with first 30, then 15, then 8, 4, 2, 1, 1 and so on
+1. Repeat from step 2 until the handicap is stable
 
-### Handicap
+### Handicap quotas
 ```
 w = Weaker player time
 s = Stronger player time
@@ -147,5 +121,29 @@ HCP w/s
 57  39
 58  59
 59  119
-60  infinity
 ```
+
+### The QR code
+* Contains the URL for the application
+* Use your camera or QR reader app
+* Optimized for Android
+
+### Definitions
+* reflection = the time you have left
+* bonus = time that will be added for every move. (Fischer System)
+* hcp = handicap. Expressed in sixtieths (1/60)
+* h = hour: 0 to 60
+* m = minute: 0 to 60
+* s = second: 0 to 60
+* t = handicap: 0 to 59
+
+### New game
+* Click *pause*
+* Click *cog wheel*
+* Click **ok**
+* Click one of the players to start
+
+### Pause the clock
+* Click *pause*
+* Click any player to continue
+
