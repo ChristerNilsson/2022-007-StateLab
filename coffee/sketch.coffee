@@ -11,6 +11,7 @@ HEARTBEAT = 1000 # ms updates of localStorage
 FRAMERATE = 30 # 10
 
 settings = {}
+backup = null
 states = {}
 
 qr = null
@@ -285,6 +286,10 @@ class SClock extends State
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
 
+		if key == 'edit'
+			backup = JSON.parse JSON.stringify settings
+			console.log 'backup skapad',backup
+
 		updateLocalStorage()
 		super key
 
@@ -292,12 +297,12 @@ class SClock extends State
 		background 'white'
 		super()
 
-# =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor swap a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
+# =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
 class SEditor extends State
 	constructor : (name) ->
 		super name
-		settings.sums = [0,0,0,0,0,0]
-		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor swap'.split ' '
+		#settings.sums = [0,0,0,0,0,0]
+		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
@@ -305,9 +310,8 @@ class SEditor extends State
 
 	makeButtons : ->
 
-		@buttons.swap       = new Button 25,93, 22,8, 'swap'
-		@buttons.cancel     = new Button 50,93, 22,8, 'cancel'
-		@buttons.ok         = new Button 75,93, 22,8, 'ok'
+		@buttons.cancel     = new Button 33,93, 22,8, 'cancel'
+		@buttons.ok         = new Button 67,93, 22,8, 'ok'
 		@buttons.orange     = new BColor 50, 3,'orange'
 		@buttons.white      = new BColor 50, 9,'white'
 		@buttons.green      = new BColor 50,15,'green'
@@ -329,56 +333,81 @@ class SEditor extends State
 
 	message : (key) ->
 
-		if key == 'swap'
-			settings.swap = -settings.swap
-		else if key == 'cancel'
+		if key == 'cancel'
+			# Återställ allt som behövs
+			settings = JSON.parse JSON.stringify backup
+			# Nollställ 6x6-matrisen
+			@clearMatrix()
+
+			# Tänd aktuella siffror
+			console.log settings.bits
+			for name in settings.bits
+				@buttons[name].fg = 'yellow'
+
+			settings.sums = @calcSums()
+
+			@uppdatera()
+
+			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
+			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
+
 		else if key == 'ok'
-			settings.paused = true
-			settings.timeout = false
+			#settings.paused = true
+			#settings.timeout = false
 
-			states.SClock.buttons.left.fg = 'white'
-			states.SClock.buttons.left.bg = 'orange'
-			states.SClock.buttons.right.fg = 'white'
-			states.SClock.buttons.right.bg = 'green'
-			states.SClock.buttons.show.text = settings.show
+		# 	states.SClock.buttons.left.fg = 'white'
+		# 	states.SClock.buttons.left.bg = 'orange'
+		# 	states.SClock.buttons.right.fg = 'white'
+		# 	states.SClock.buttons.right.bg = 'green'
+		# 	states.SClock.buttons.show.text = settings.show
 
-			settings.clocks  = [@players[0][0], @players[1][0]]
-			settings.bonuses = [@players[0][1], @players[1][1]]
+			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
+			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 
-			updateLocalStorage()
+		# 	updateLocalStorage()
 
 		else
 			letter = key[0]
 			col = 'HMSmst'.indexOf letter
 			number = parseInt key.slice 1
 			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
-			settings.sums[col] += if @buttons[key].fg == 'gray' then -number else number
-			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0
-			@buttons.swap.visible = false #settings.sums[5] > 0
+			settings.sums = @calcSums()
+			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
 
 		@uppdatera()
 		super key
 
-	uppdatera : ->
-
-		settings.sums = [0,0,0,0,0,0]
+	clearMatrix : ->
 		for i in range 6
 			letter = 'HMSmst'[i]
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				if @buttons[name].fg == 'yellow' then settings.sums[i] += number
+				@buttons[name].fg = 'gray'
 
+	calcSums : ->
+		res = [0,0,0,0,0,0]
+		for i in range 6
+			letter = 'HMSmst'[i]
+			for j in range 6
+				number = [1,2,4,8,15,30][j]
+				name = letter + number
+				if @buttons[name].fg == 'yellow' then res[i] += number
+		res
+
+	uppdatera : ->
+
+		settings.sums = @calcSums()
 		settings.show = @compact()
 		@buttons.white.text = settings.show
 		
 		@handicap()
-		if @hcp == 0
+		if settings.hcp == 0
 			@buttons.orange.text = ''
 			@buttons.green.text  = ''
 		else
-			@buttons.orange.text = prettyPair @players[0][0], @players[0][1]
-			@buttons.green.text  = prettyPair @players[1][0], @players[1][1]
+			@buttons.orange.text = prettyPair settings.players[0][0], settings.players[0][1]
+			@buttons.green.text  = prettyPair settings.players[1][0], settings.players[1][1]
 
 	compact : ->
 		headers = 'hmsms'
@@ -394,16 +423,16 @@ class SEditor extends State
 		header
 
 	handicap : ->
-		@hcp = settings.swap * settings.sums[5] / (HCP * 60) # 0.0 .. 1.0
-		@refl = HOUR * settings.sums[0] + MINUTE * settings.sums[1] + settings.sums[2] # sekunder
-		@bonus =                          MINUTE * settings.sums[3] + settings.sums[4] # sekunder
-		@players = []
-		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
-		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
+		settings.hcp = settings.sums[5] / (HCP * 60) # 0.0 .. 1.0
+		settings.refl = HOUR * settings.sums[0] + MINUTE * settings.sums[1] + settings.sums[2] # sekunder
+		settings.bonus =                          MINUTE * settings.sums[3] + settings.sums[4] # sekunder
+		settings.players = []
+		settings.players[0] = [settings.refl + settings.refl*settings.hcp, settings.bonus + settings.bonus*settings.hcp]
+		settings.players[1] = [settings.refl - settings.refl*settings.hcp, settings.bonus - settings.bonus*settings.hcp]
 
 ###################################
 
-preload = -> 
+preload = ->
 	qr = loadImage 'qr.png'
 	sound = loadSound 'key.mp3'
 
@@ -444,13 +473,11 @@ setup = ->
 
 	# os = 'Android'
 
+	# Förhindrar att man kan scrolla canvas på iOS
 	canvas = createCanvas innerWidth,innerHeight
 	disableBodyScroll = bodyScrollLock.disableBodyScroll
 	enableBodyScroll = bodyScrollLock.enableBodyScroll
 	disableBodyScroll canvas
-	# canvas.touchMoved = (e) ->
-	# 	e.preventDefault()
-	# 	false
 
 	if os == 'Android' then textFont 'Droid Sans'
 	if os == 'Mac' then textFont 'Verdana'
@@ -540,7 +567,7 @@ draw = ->
 makeBits = ->
 	bits = []
 	for key of states.SEditor.buttons
-		if key not in ['ok','cancel','swap']
+		if key not in ['ok','cancel']
 			button = states.SEditor.buttons[key]
 			if button.fg == 'yellow' then bits.push key
 	bits
@@ -564,15 +591,9 @@ getSettings = ->
 		settings.clocks = [180,180]
 		settings.bonuses= [2,2]
 		settings.sums = [0,3,0,0,2,0]
-		settings.swap = 1
 		settings.player = -1 
 		settings.timeout = false
 		settings.paused = true
 		console.log 'fetching default settings',settings
 		localStorage.settings = JSON.stringify settings
 	settings
-
-# arr = []
-# for i in range 60
-# 	arr.push "#{i} #{Math.round((60+i)/(60-i)*1000)/1000}"
-# console.log arr.join "\n"
