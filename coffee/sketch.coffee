@@ -1,5 +1,6 @@
 # TODO
 # Försämring av frameRate inträffar om man går från fullscreen till normal på Android
+# Ta bort S och m ?
 
 HCP = 1
 HOUR = 3600
@@ -89,6 +90,28 @@ class Button
 			fill @fg
 			text @text,@x,@y
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
+
+class BPopular extends Button
+	constructor : (x,y,w=0,h=0,@text,@bg='white',@fg='black') ->
+		super x,y,w,h
+		@alts = []
+		@alts.push 'M2 M1 s2'
+		@alts.push 'M4 M1'
+		@alts.push 'M4 M1 s2 s1'
+		@alts.push 'M8 M2 s4 s1'
+		@alts.push 'M8 M2 s8 s2'
+		@alts.push 'M15 s4 s1'
+		@alts.push 'M15 s8 s2'
+		@alts.push 'M15 M4 M1 s4 s1'
+		@alts.push 'M30 M15 s8 s2'
+		@alts.push 'H1 M30 s30'
+		@index = @alts.length-1
+	draw : ->
+		fill @bg
+		rect @x,@y,@w,@h
+		textSize 4
+		fill @fg
+		text @text,@x,@y
 
 class BPause extends Button
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
@@ -303,7 +326,7 @@ class SEditor extends State
 	constructor : (name) ->
 		super name
 		#settings.sums = [0,0,0,0,0,0]
-		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor'.split ' '
+		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor popular'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
@@ -311,8 +334,9 @@ class SEditor extends State
 
 	makeButtons : ->
 
-		@buttons.cancel     = new Button 33,93, 22,8, 'cancel'
-		@buttons.ok         = new Button 67,93, 22,8, 'ok'
+		@buttons.popular    = new BPopular 1*100/6,93, 30,8, 'top 10'
+		@buttons.cancel     = new Button   3*100/6,93, 30,8, 'cancel'
+		@buttons.ok         = new Button   5*100/6,93, 30,8, 'ok'
 		@buttons.orange     = new BColor 50, 3,'orange'
 		@buttons.white      = new BColor 50, 9,'white'
 		@buttons.green      = new BColor 50,15,'green'
@@ -336,7 +360,14 @@ class SEditor extends State
 
 	message : (key) ->
 
-		if key == 'cancel'
+		if key == 'popular'
+			button = @buttons.popular
+			button.index = (button.index+1) % button.alts.length
+			@clearMatrix()
+			settings.bits = button.alts[button.index].split ' '
+			@buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
+
+		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
 			@clearMatrix() # Nollställ 6x6-matrisen
 			@buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
