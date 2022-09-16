@@ -44,7 +44,7 @@
 ## How to find a handicap between two persons
 1. Start with handicap 0.
 1. Play a game with your friend
-1. Adjust the handicap with 10 then 9 and so on down to 1
+1. Adjust the handicap with first 30, then 15, then 8, 4, 2, 1, 1, 1, 1...
 1. Repeat from step 2 until the handicap is stable
 
 ### Example:

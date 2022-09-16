@@ -431,7 +431,10 @@ setup = ->
 
 	# os = 'Android'
 
-	createCanvas innerWidth,innerHeight
+	canvas = createCanvas innerWidth,innerHeight
+	canvas.touchMoved = (e) ->
+		e.preventDefault()
+		false
 
 	if os == 'Android' then textFont 'Droid Sans'
 	if os == 'Mac' then textFont 'Verdana'
@@ -549,5 +552,5 @@ getSettings = ->
 		settings.timeout = false
 		settings.paused = true
 		console.log 'fetching default settings',settings
-		localStorage.setItem 'settings', JSON.stringify settings
+		localStorage.settings = JSON.stringify settings
 	settings
