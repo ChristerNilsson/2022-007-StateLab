@@ -1,8 +1,9 @@
 # Chess clock with handicaps
 * Click on any player to start, that is the green or orange button
-* Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PNG" width="25"> button
 
 ![Main screen](Clock1.PNG)
+
+Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PNG" width="25"> button
 
 ## Settings
 * Choose hours, minutes and seconds using columns **H**, **M** and **S**
@@ -147,3 +148,5 @@ HCP w/s
 * Click *pause*
 * Click any player to continue
 
+### Hidden feature
+* Clicking QR makes the screen full size on Android and Windows

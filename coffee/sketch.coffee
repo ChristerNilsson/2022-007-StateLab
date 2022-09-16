@@ -72,6 +72,8 @@ hms = (x) ->
 chai.assert.deepEqual hms(180), [0,3,0]
 chai.assert.deepEqual hms(180.5), [0,3,0.5]
 
+clone = (x) -> JSON.parse JSON.stringify x
+
 class Button
 	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
 		@visible = true
@@ -154,7 +156,7 @@ class BRotate extends Button
 
 		#text (if h==0 then 'm:ss' else 'h:mm'),0,17
 		if settings.bonuses[@player] > 0
-			text '+' + trunc3(settings.bonuses[@player])+'s',0,17
+			text '+' + pretty(settings.bonuses[@player]),0,17
 
 		pop()
 
@@ -192,7 +194,7 @@ class BColor extends Button
 		pop()
 
 class State
-	constructor : (@name) -> 
+	constructor : (@name) ->
 		@buttons = {}
 		@transitions = {}
 		@makeButtons()
@@ -224,7 +226,6 @@ class State
 			if button.visible and button.inside x, y
 				@message key
 				break
-
 
 class SClock extends State
 
@@ -287,10 +288,10 @@ class SClock extends State
 			resizeCanvas innerWidth, innerHeight
 
 		if key == 'edit'
-			backup = JSON.parse JSON.stringify settings
+			backup = clone settings # to be used by cancel
 			console.log 'backup skapad',backup
 
-		updateLocalStorage()
+		saveSettings()
 		super key
 
 	draw : ->
@@ -318,7 +319,9 @@ class SEditor extends State
 		@buttons.reflection = new BDead  25,21,'reflection'
 		@buttons.bonus      = new BDead  66,21,'bonus'
 		@buttons.hcp        = new BDead  92,21,'hcp'
+		@makeEditButtons()
 
+	makeEditButtons : ->
 		for i in range 6
 			letter = 'HMSmst'[i]
 			xsize = 100/6
@@ -334,39 +337,16 @@ class SEditor extends State
 	message : (key) ->
 
 		if key == 'cancel'
-			# Återställ allt som behövs
-			settings = JSON.parse JSON.stringify backup
-			# Nollställ 6x6-matrisen
-			@clearMatrix()
-
-			# Tänd aktuella siffror
-			console.log settings.bits
-			for name in settings.bits
-				@buttons[name].fg = 'yellow'
-
+			settings = clone backup # Återställ allt som behövs
+			@clearMatrix() # Nollställ 6x6-matrisen
+			@buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
 			settings.sums = @calcSums()
 
-			@uppdatera()
-
-			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
-			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
-
 		else if key == 'ok'
-			#settings.paused = true
-			#settings.timeout = false
-
-		# 	states.SClock.buttons.left.fg = 'white'
-		# 	states.SClock.buttons.left.bg = 'orange'
-		# 	states.SClock.buttons.right.fg = 'white'
-		# 	states.SClock.buttons.right.bg = 'green'
-		# 	states.SClock.buttons.show.text = settings.show
-
 			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 
-		# 	updateLocalStorage()
-
-		else
+		else # 6 x 6 edit buttons
 			letter = key[0]
 			col = 'HMSmst'.indexOf letter
 			number = parseInt key.slice 1
@@ -440,29 +420,6 @@ windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
-# checkButtons = ->
-# 	console.log 'checkButtons started'
-# 	for bkey of buttons
-# 		button = buttons[bkey]
-# 		found = false
-# 		for skey of states
-# 			state = states[skey]
-# 			if bkey of state.transitions then found = true
-# 		if not found then console.log '  Button',bkey,'not used by any state'
-# 	console.log 'checkButtons done!'
-
-# checkStates = ->
-# 	console.log 'checkStates started'
-# 	for skey of states
-# 		state = states[skey]
-# 		found = false
-# 		for tkey of state.transitions
-# 			transition = state.transitions[tkey]
-# 			if transition != undefined and transition not of states then console.log transition,'not found'
-# 			if tkey of buttons then found = true else info = tkey
-# 		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
-# 	console.log 'checkStates done!'
-
 setup = ->
 
 	frameRate FRAMERATE
@@ -473,11 +430,8 @@ setup = ->
 
 	# os = 'Android'
 
-	# Förhindrar att man kan scrolla canvas på iOS
 	canvas = createCanvas innerWidth,innerHeight
-	disableBodyScroll = bodyScrollLock.disableBodyScroll
-	enableBodyScroll = bodyScrollLock.enableBodyScroll
-	disableBodyScroll canvas
+	bodyScrollLock.disableBodyScroll canvas # Förhindrar att man kan scrolla canvas på iOS
 
 	if os == 'Android' then textFont 'Droid Sans'
 	if os == 'Mac' then textFont 'Verdana'
@@ -495,7 +449,7 @@ setup = ->
 	createState 'SClock', SClock 
 	createState 'SEditor',SEditor
 
-	settings = getSettings()
+	settings = loadSettings()
 
 	states.SEditor.uppdatera()
 	for key in settings.bits
@@ -507,6 +461,14 @@ setup = ->
 
 	#checkButtons()
 	#checkStates()
+
+makeBits = ->
+	bits = []
+	for key of states.SEditor.buttons
+		if key not in ['ok','cancel']
+			button = states.SEditor.buttons[key]
+			if button.fg == 'yellow' then bits.push key
+	bits
 
 dump = -> # log everything
 	for skey of states 
@@ -536,13 +498,17 @@ draw = ->
 	states.SClock.uppdatera()
 	currState.draw()
 	pop()
+
+	saveSettings()
+
 	# debug
 	aspect = (w,h,y) ->
 		if w<h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	updateLocalStorage()
+	debugFunction()
 
+debugFunction = ->
 	rates.push frameRate()
 	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
 	sumRate += _.last(rates) - oldest
@@ -564,22 +530,7 @@ draw = ->
 
 	# currState.draw()
 
-makeBits = ->
-	bits = []
-	for key of states.SEditor.buttons
-		if key not in ['ok','cancel']
-			button = states.SEditor.buttons[key]
-			if button.fg == 'yellow' then bits.push key
-	bits
-
-updateLocalStorage = ->
-	d = new Date()
-	if d - lastStorageSave < HEARTBEAT then return # ms
-	lastStorageSave = d
-	settings.bits = makeBits()
-	localStorage.settings = JSON.stringify settings
-
-getSettings = ->
+loadSettings = ->
 	if localStorage.settings
 		settings = JSON.parse localStorage.settings
 		settings.paused = true
@@ -597,3 +548,38 @@ getSettings = ->
 		console.log 'fetching default settings',settings
 		localStorage.settings = JSON.stringify settings
 	settings
+
+saveSettings = ->
+	d = new Date()
+	if d - lastStorageSave < HEARTBEAT then return # ms
+	lastStorageSave = d
+	settings.bits = makeBits()
+	localStorage.settings = JSON.stringify settings
+
+# checkButtons = ->
+# 	console.log 'checkButtons started'
+# 	for bkey of buttons
+# 		button = buttons[bkey]
+# 		found = false
+# 		for skey of states
+# 			state = states[skey]
+# 			if bkey of state.transitions then found = true
+# 		if not found then console.log '  Button',bkey,'not used by any state'
+# 	console.log 'checkButtons done!'
+
+# checkStates = ->
+# 	console.log 'checkStates started'
+# 	for skey of states
+# 		state = states[skey]
+# 		found = false
+# 		for tkey of state.transitions
+# 			transition = state.transitions[tkey]
+# 			if transition != undefined and transition not of states then console.log transition,'not found'
+# 			if tkey of buttons then found = true else info = tkey
+# 		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
+# 	console.log 'checkStates done!'
+
+# arr = []
+# for i in range 60
+# 	arr.push "#{i} #{Math.round((60+i)/(60-i)*1000)/1000}"
+# console.log arr.join "\n"
