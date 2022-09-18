@@ -75,27 +75,27 @@ merp = function(y1, y2, i, x1, x2) {
   return map(i, x1, x2, y1, y2);
 };
 
-getParameters = function(h) {
-  var f;
-  if (h == null) {
-    h = window.location.href;
-  }
-  return _.object((function() {
-    var k, len, ref, results;
-    ref = h.split('?')[1].split('&');
-    results = [];
-    for (k = 0, len = ref.length; k < len; k++) {
-      f = ref[k];
-      results.push(f.split('='));
-    }
-    return results;
-  })());
-};
+// getParameters = function(h) {
+//   var f;
+//   if (h == null) {
+//     h = window.location.href;
+//   }
+//   return _.object((function() {
+//     var k, len, ref, results;
+//     ref = h.split('?')[1].split('&');
+//     results = [];
+//     for (k = 0, len = ref.length; k < len; k++) {
+//       f = ref[k];
+//       results.push(f.split('='));
+//     }
+//     return results;
+//   })());
+// };
 
-assert(getParameters('http:\\christernilsson.github.io\Shortcut\www?a=0&b=1'), {
-  'a': '0',
-  'b': '1'
-});
+// assert(getParameters('http:\\christernilsson.github.io\Shortcut\www?a=0&b=1'), {
+//   'a': '0',
+//   'b': '1'
+// });
 
 compare = function(a, b) {
   var c, i, k, len, ref;

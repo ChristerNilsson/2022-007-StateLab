@@ -26,7 +26,6 @@ sumRate = 0
 
 diag = 0 
 
-
 getLocalCoords = -> # tar 3 microsekunder
 	matrix = drawingContext.getTransform()
 	pd = pixelDensity()
@@ -164,12 +163,12 @@ class BRotate extends Button
 		pop()
 
 class BEdit extends Button
-	constructor : (x,y,w,h,text,fg='gray') -> 
-		super x,y,w,h,text,'black',fg
+	constructor : (@name,x,y,w,h,text) -> 
+		super x,y,w,h,text,'black'
 	draw : ->
 		push()
 		textSize 5
-		fill @fg
+		fill if @name in settings.bits then 'yellow' else 'gray'
 		text @text,@x,@y
 		pop()
 
@@ -306,9 +305,9 @@ class SClock extends State
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		#settings.sums = [0,0,0,0,0,0]
 		arr = '=> bonus green hcp orange reflection white =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s1 s2 s3 s5 s10 s30'.split ' '
 		@createTrans arr.join ' '
+		#states.SAdvanced.uppdatera()
 
 	makeButtons : ->
 
@@ -344,10 +343,9 @@ class SBasic extends State
 	message : (key) ->
 
 		if key == 'advanced'
+		else if key == 'basic'
 		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
-			states.SAdvanced.clearMatrix() # Nollställ 6x6-matrisen
-			states.SAdvanced.buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
 			settings.sums = states.SAdvanced.calcSums()
 
 		else if key == 'ok'
@@ -356,31 +354,23 @@ class SBasic extends State
 			settings.timeout = false 
 
 		else # 6+6 shortcut buttons
-			letter = key[0]
-			buttons = states.SAdvanced.buttons
-			for i in [1,2,4,8,15,30]
-				if letter == 'M'
-					buttons['H'+i].fg = 'gray'
-					buttons['M'+i].fg = 'gray'
-					buttons['S'+i].fg = 'gray'
-				else if letter == 's'
-					buttons['m'+i].fg = 'gray'
-					buttons['s'+i].fg = 'gray'
+			settings.bits = settings.bits.filter (value, index, arr) -> value[0] != key[0]
+			console.log 'filter',settings.bits
 			states.SAdvanced.message key
 			settings.sums = states.SAdvanced.calcSums()
-			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
+			@buttons.ok.visible = settings.sums.H + settings.sums.M + settings.sums.S > 0 and settings.sums.t < 60
 
 		super key
 
 class SAdvanced extends State
 	constructor : (name) ->
 		super name
-		#settings.sums = [0,0,0,0,0,0]
 		arr = '=> green white orange reflection bonus hcp H M S m s t =>SClock cancel ok =>SBasic basic =>SAdvanced'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
 		@createTrans arr.join ' '
+		@uppdatera()
 
 	makeButtons : ->
 
@@ -409,16 +399,15 @@ class SAdvanced extends State
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				@buttons[name] = new BEdit xoff+xsize*i, yoff+ysize*j, xsize, ysize, number, 'gray'
-
+				@buttons[name] = new BEdit name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
-
+		console.log 'key',key
+		#if key == undefined then return
 		if key == 'basic'
+		else if key == 'advanced'
 		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
-			@clearMatrix() # Nollställ 6x6-matrisen
-			@buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
 			settings.sums = @calcSums()
 
 		else if key == 'ok'
@@ -426,36 +415,31 @@ class SAdvanced extends State
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 			settings.timeout = false 
 		else
-			hash = {'M3':'M1 M2','M5':'M1 M4','M10':'M2 M8', 'M90':'H1 M30', 's3':'s1 s2','s5':'s1 s4','s10':'s2 s8'}
+			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
 				for msg in hash[key].split ' '
 					@message msg
 			else # 6 x 6 edit buttons
-				#letter = key[0]
-				#col = 'HMSmst'.indexOf letter
-				#number = parseInt key.slice 1
-				@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
+				settings.bits = @flip settings.bits, key
 				settings.sums = @calcSums()
-				@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
+				@buttons.ok.visible = settings.sums.H + settings.sums.M + settings.sums.S > 0 and settings.sums.t < 60
 
 		@uppdatera()
 		super key
-
-	clearMatrix : ->
-		for i in range 6
-			letter = 'HMSmst'[i]
-			for j in range 6
-				number = [1,2,4,8,15,30][j]
-				@buttons[letter + number].fg = 'gray'
+		
+	flip : (arr, key) ->
+		if key in arr 
+			_.remove arr, (n) -> n == key
+		else 
+			arr.push key
+		arr
 
 	calcSums : ->
-		res = [0,0,0,0,0,0]
-		for i in range 6
-			letter = 'HMSmst'[i]
-			for j in range 6
-				number = [1,2,4,8,15,30][j]
-				name = letter + number
-				if @buttons[name].fg == 'yellow' then res[i] += number
+		res = {H:0,M:0,S:0,m:0,s:0,t:0}
+		for key in settings.bits
+			letter = key[0]
+			number = parseInt key.slice 1
+			res[letter] += number
 		res
 
 	uppdatera : ->
@@ -473,22 +457,25 @@ class SAdvanced extends State
 			@buttons.green.text  = prettyPair settings.players[1][0], settings.players[1][1]
 
 	compact : ->
+		keys = 'HMSms'
 		headers = 'hmsms'
 		header0 = ''
 		header1 = ''
-		for i in range 0,3
-			if settings.sums[i]>0 then header0 += settings.sums[i] + headers[i]
-		for i in range 3,5
-			if settings.sums[i]>0 then header1 += settings.sums[i] + headers[i]
+		for i in [0,1,2]
+			key = keys[i]
+			if settings.sums[key]>0 then header0 += settings.sums[key] + headers[i]
+		for i in [3,4]
+			key = keys[i]
+			if settings.sums[key]>0 then header1 += settings.sums[key] + headers[i]
 		header = header0
 		if header1.length > 0 then header += '+' + header1
-		if settings.sums[5] > 0 then header += '\n' + settings.sums[5]
+		if settings.sums.t > 0 then header += '\n' + settings.sums.t
 		header
 
 	handicap : ->
-		settings.hcp = settings.sums[5] / (HCP * 60) # 0.0 .. 1.0
-		settings.refl = HOUR * settings.sums[0] + MINUTE * settings.sums[1] + settings.sums[2] # sekunder
-		settings.bonus =                          MINUTE * settings.sums[3] + settings.sums[4] # sekunder
+		settings.hcp = settings.sums.t / (HCP * 60) # 0.0 .. 1.0
+		settings.refl = HOUR * settings.sums.H + MINUTE * settings.sums.M + settings.sums.S # sekunder
+		settings.bonus =                         MINUTE * settings.sums.m + settings.sums.s # sekunder
 		settings.players = []
 		settings.players[0] = [settings.refl + settings.refl*settings.hcp, settings.bonus + settings.bonus*settings.hcp]
 		settings.players[1] = [settings.refl - settings.refl*settings.hcp, settings.bonus - settings.bonus*settings.hcp]
@@ -529,30 +516,17 @@ setup = ->
 	rectMode CENTER
 	angleMode DEGREES
 
+	settings = loadSettings()
+
 	createState 'SClock', SClock 
 	createState 'SAdvanced',SAdvanced
 	createState 'SBasic',SBasic
-
-	settings = loadSettings()
-
-	states.SAdvanced.uppdatera()
-	for key in settings.bits
-		states.SAdvanced.message key
-	states.SAdvanced.uppdatera()
 	
 	#dump()
 	currState = states.SClock
 
 	#checkButtons()
 	#checkStates()
-
-makeBits = ->
-	bits = []
-	for key of states.SAdvanced.buttons
-		if key not in ['ok','cancel']
-			button = states.SAdvanced.buttons[key]
-			if button.fg == 'yellow' then bits.push key
-	bits
 
 dump = -> # log everything
 	for skey of states 
@@ -599,7 +573,6 @@ debugFunction = ->
 
 	# # os = navigator.appVersion
 	textSize 2.5
-	#text 'Click QR => Fullscreen',50,12
 	text Math.round(sumRate),95,5
 
 	# text currState.name,50,3
@@ -615,30 +588,29 @@ debugFunction = ->
 	# currState.draw()
 
 loadSettings = ->
-	if localStorage.settings
+	if false and localStorage.settings
 		settings = JSON.parse localStorage.settings
 		settings.paused = true
-		console.log 'fetching stored settings',settings
 	else 
 		settings = {}
 		settings.show = '3m2s'
 		settings.bits = ['M1','M2','s2']
 		settings.clocks = [180,180]
 		settings.bonuses= [2,2]
-		settings.sums = [0,3,0,0,2,0]
+		settings.sums = [H:0,M:3,S:0,m:0,S:2,t:0]
 		settings.player = -1 
 		settings.timeout = false
 		settings.paused = true
-		console.log 'fetching default settings',settings
 		localStorage.settings = JSON.stringify settings
+	console.log 'settings', settings
 	settings
 
 saveSettings = ->
 	d = new Date()
 	if d - lastStorageSave < HEARTBEAT then return # ms
 	lastStorageSave = d
-	settings.bits = makeBits()
 	localStorage.settings = JSON.stringify settings
+	console.log 'saveSettings',localStorage.settings
 
 # checkButtons = ->
 # 	console.log 'checkButtons started'
