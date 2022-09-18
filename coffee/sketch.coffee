@@ -84,34 +84,14 @@ class Button
 		@h = Math.round @h
 	draw : ->
 		if @visible
+			push()
 			fill @bg
 			rect @x,@y,@w,@h
 			textSize 4
 			fill @fg
 			text @text,@x,@y
+			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
-
-class BPopular extends Button
-	constructor : (x,y,w=0,h=0,@text,@bg='white',@fg='black') ->
-		super x,y,w,h
-		@alts = []
-		@alts.push 'M2 M1 s2'
-		@alts.push 'M4 M1'
-		@alts.push 'M4 M1 s2 s1'
-		@alts.push 'M8 M2 s4 s1'
-		@alts.push 'M8 M2 s8 s2'
-		@alts.push 'M15 s4 s1'
-		@alts.push 'M15 s8 s2'
-		@alts.push 'M15 M4 M1 s4 s1'
-		@alts.push 'M30 M15 s8 s2'
-		@alts.push 'H1 M30 s30'
-		@index = @alts.length-1
-	draw : ->
-		fill @bg
-		rect @x,@y,@w,@h
-		textSize 4
-		fill @fg
-		text @text,@x,@y
 
 class BPause extends Button
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
@@ -159,7 +139,7 @@ class BRotate extends Button
 	draw : ->
 		secs = settings.clocks[@player]
 		[h,m,s] = hms secs
-		if h >= 1 then ss = h + 'h' + d2 m
+		if h >= 1 then ss = h + ':' + d2 m
 		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
 		noStroke()
 		push()
@@ -187,17 +167,21 @@ class BEdit extends Button
 	constructor : (x,y,w,h,text,fg='gray') -> 
 		super x,y,w,h,text,'black',fg
 	draw : ->
+		push()
 		textSize 5
 		fill @fg
 		text @text,@x,@y
+		pop()
 
 class BDead extends Button
 	constructor : (x,y,text,fg='lightgray') -> 
 		super x,y,0,0,text,'black',fg
 	draw : ->
+		push()
 		textSize 4
 		fill @fg
 		text @text,@x,@y
+		pop()
 		
 class BShow extends BDead
 	constructor : (x,y,fg='lightgray') -> 
@@ -238,8 +222,6 @@ class State
 		for tkey of @transitions
 			if tkey of @buttons
 				@buttons[tkey].draw()
-			else
-				console.log 'missing',tkey
 
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
@@ -254,7 +236,7 @@ class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock left pause qr right =>SEditor edit => show'
+		@createTrans '=>SClock left pause qr right =>SBasic edit => show'
 		settings.paused = true
 		settings.player = -1
 
@@ -290,7 +272,7 @@ class SClock extends State
 				@buttons.left.fg = 'black'
 				@buttons.right.fg = 'white'
 
-		if key == 'right'
+		else if key == 'right'
 			if settings.timeout then return
 			else
 				if settings.player in [-1,1]
@@ -301,16 +283,16 @@ class SClock extends State
 				@buttons.left.fg = 'white'
 				@buttons.right.fg = 'black'
 
-		if key == 'pause'
+		else if key == 'pause'
 			settings.paused = true
 			@buttons.left.fg = if settings.player == 0 then 'white' else 'black'
 			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
 
-		if key == 'qr'
+		else if key == 'qr'
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
 
-		if key == 'edit'
+		else if key == 'edit'
 			backup = clone settings # to be used by cancel
 			console.log 'backup skapad',backup
 
@@ -321,12 +303,80 @@ class SClock extends State
 		background 'white'
 		super()
 
-# =>SClock ok => orange white green reflection bonus hcp a b c d e f =>SEditor a0 a1 a2 a3 a4 a5 b0 b1 b2 b3 b4 b5 c0 c1 c2 c3 c4 c5 d0 d1 d2 d3 d4 d5 e0 e1 e2 e3 e4 e5 f0 f1 f2 f3 f4 f5
-class SEditor extends State
+class SBasic extends State
 	constructor : (name) ->
 		super name
 		#settings.sums = [0,0,0,0,0,0]
-		arr = '=> H M S m s t bonus green hcp orange reflection white =>SClock cancel ok =>SEditor popular'.split ' '
+		arr = '=> bonus green hcp orange reflection white =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s1 s2 s3 s5 s10 s30'.split ' '
+		@createTrans arr.join ' '
+
+	makeButtons : ->
+
+		x = [30,70]
+		y = [30,40,50,60,70,80,93]
+		w = 10
+
+		@buttons.orange     = states.SAdvanced.buttons.orange
+		@buttons.white      = states.SAdvanced.buttons.white
+		@buttons.green      = states.SAdvanced.buttons.green
+
+		@buttons.reflection = new BDead  x[0],20,'reflection'
+		@buttons.bonus      = new BDead  x[1],20,'bonus'
+
+		@buttons.M1   			= new Button x[0],y[0], w,8, '1m'
+		@buttons.M2   			= new Button x[0],y[1], w,8, '2m'
+		@buttons.M3   			= new Button x[0],y[2], w,8, '3m'
+		@buttons.M5   			= new Button x[0],y[3], w,8, '5m'
+		@buttons.M10   			= new Button x[0],y[4], w,8, '10m'
+		@buttons.M90   			= new Button x[0],y[5], w,8, '90m'
+
+		@buttons.s1   			= new Button x[1],y[0], w,8, '1s'
+		@buttons.s2   			= new Button x[1],y[1], w,8, '2s'
+		@buttons.s3   			= new Button x[1],y[2], w,8, '3s'
+		@buttons.s5   			= new Button x[1],y[3], w,8, '5s'
+		@buttons.s10   			= new Button x[1],y[4], w,8, '10s'
+		@buttons.s30   			= new Button x[1],y[5], w,8, '30s'
+
+		@buttons.advanced   = new Button 1*100/6,y[6], 30,8, 'advanced'
+		@buttons.cancel     = new Button 3*100/6,y[6], 30,8, 'cancel'
+		@buttons.ok         = new Button 5*100/6,y[6], 30,8, 'ok'
+
+	message : (key) ->
+
+		if key == 'advanced'
+		else if key == 'cancel'
+			settings = clone backup # Återställ allt som behövs
+			states.SAdvanced.clearMatrix() # Nollställ 6x6-matrisen
+			states.SAdvanced.buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
+			settings.sums = states.SAdvanced.calcSums()
+
+		else if key == 'ok'
+			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
+			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
+			settings.timeout = false 
+
+		else # 6+6 shortcut buttons
+			letter = key[0]
+			buttons = states.SAdvanced.buttons
+			for i in [1,2,4,8,15,30]
+				if letter == 'M'
+					buttons['H'+i].fg = 'gray'
+					buttons['M'+i].fg = 'gray'
+					buttons['S'+i].fg = 'gray'
+				else if letter == 's'
+					buttons['m'+i].fg = 'gray'
+					buttons['s'+i].fg = 'gray'
+			states.SAdvanced.message key
+			settings.sums = states.SAdvanced.calcSums()
+			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
+
+		super key
+
+class SAdvanced extends State
+	constructor : (name) ->
+		super name
+		#settings.sums = [0,0,0,0,0,0]
+		arr = '=> green white orange reflection bonus hcp H M S m s t =>SClock cancel ok =>SBasic basic =>SAdvanced'.split ' '
 		for i in range 6
 			for j in range 6
 				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
@@ -334,15 +384,18 @@ class SEditor extends State
 
 	makeButtons : ->
 
-		@buttons.popular    = new BPopular 1*100/6,93, 30,8, 'top 10'
-		@buttons.cancel     = new Button   3*100/6,93, 30,8, 'cancel'
-		@buttons.ok         = new Button   5*100/6,93, 30,8, 'ok'
 		@buttons.orange     = new BColor 50, 3,'orange'
 		@buttons.white      = new BColor 50, 9,'white'
 		@buttons.green      = new BColor 50,15,'green'
+
 		@buttons.reflection = new BDead  25,21,'reflection'
 		@buttons.bonus      = new BDead  66,21,'bonus'
 		@buttons.hcp        = new BDead  92,21,'hcp'
+
+		@buttons.basic      = new Button 1*100/6,93, 30,8, 'basic'
+		@buttons.cancel     = new Button 3*100/6,93, 30,8, 'cancel'
+		@buttons.ok         = new Button 5*100/6,93, 30,8, 'ok'
+
 		@makeEditButtons()
 
 	makeEditButtons : ->
@@ -358,15 +411,10 @@ class SEditor extends State
 				name = letter + number
 				@buttons[name] = new BEdit xoff+xsize*i, yoff+ysize*j, xsize, ysize, number, 'gray'
 
+
 	message : (key) ->
 
-		if key == 'popular'
-			button = @buttons.popular
-			button.index = (button.index+1) % button.alts.length
-			@clearMatrix()
-			settings.bits = button.alts[button.index].split ' '
-			@buttons[name].fg = 'yellow' for name in settings.bits # Tänd aktuella siffror
-
+		if key == 'basic'
 		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
 			@clearMatrix() # Nollställ 6x6-matrisen
@@ -376,14 +424,19 @@ class SEditor extends State
 		else if key == 'ok'
 			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
-
-		else # 6 x 6 edit buttons
-			letter = key[0]
-			col = 'HMSmst'.indexOf letter
-			number = parseInt key.slice 1
-			@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
-			settings.sums = @calcSums()
-			@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
+			settings.timeout = false 
+		else
+			hash = {'M3':'M1 M2','M5':'M1 M4','M10':'M2 M8', 'M90':'H1 M30', 's3':'s1 s2','s5':'s1 s4','s10':'s2 s8'}
+			if key of hash
+				for msg in hash[key].split ' '
+					@message msg
+			else # 6 x 6 edit buttons
+				letter = key[0]
+				col = 'HMSmst'.indexOf letter
+				number = parseInt key.slice 1
+				@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
+				settings.sums = @calcSums()
+				@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
 
 		@uppdatera()
 		super key
@@ -393,8 +446,7 @@ class SEditor extends State
 			letter = 'HMSmst'[i]
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
-				name = letter + number
-				@buttons[name].fg = 'gray'
+				@buttons[letter + number].fg = 'gray'
 
 	calcSums : ->
 		res = [0,0,0,0,0,0]
@@ -478,14 +530,15 @@ setup = ->
 	angleMode DEGREES
 
 	createState 'SClock', SClock 
-	createState 'SEditor',SEditor
+	createState 'SAdvanced',SAdvanced
+	createState 'SBasic',SBasic
 
 	settings = loadSettings()
 
-	states.SEditor.uppdatera()
+	states.SAdvanced.uppdatera()
 	for key in settings.bits
-		states.SEditor.message key
-	states.SEditor.uppdatera()
+		states.SAdvanced.message key
+	states.SAdvanced.uppdatera()
 	
 	#dump()
 	currState = states.SClock
@@ -495,9 +548,9 @@ setup = ->
 
 makeBits = ->
 	bits = []
-	for key of states.SEditor.buttons
+	for key of states.SAdvanced.buttons
 		if key not in ['ok','cancel']
-			button = states.SEditor.buttons[key]
+			button = states.SAdvanced.buttons[key]
 			if button.fg == 'yellow' then bits.push key
 	bits
 
@@ -551,10 +604,10 @@ debugFunction = ->
 
 	# text currState.name,50,3
 	# # fill 'green'
-	# text round3(states.SEditor.bonuses[0]),10,3
-	# text round3(states.SEditor.clocks[0]),25,3
-	# text round3(states.SEditor.clocks[1]),75,3
-	# text round3(states.SEditor.bonuses[1]),90,3
+	# text round3(states.SBasic.bonuses[0]),10,3
+	# text round3(states.SBasic.clocks[0]),25,3
+	# text round3(states.SBasic.clocks[1]),75,3
+	# text round3(states.SBasic.bonuses[1]),90,3
 
 	# text states.SClock.paused,30,2.5
 	# text states.SClock.player,70,2.5
