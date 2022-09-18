@@ -431,9 +431,9 @@ class SAdvanced extends State
 				for msg in hash[key].split ' '
 					@message msg
 			else # 6 x 6 edit buttons
-				letter = key[0]
-				col = 'HMSmst'.indexOf letter
-				number = parseInt key.slice 1
+				#letter = key[0]
+				#col = 'HMSmst'.indexOf letter
+				#number = parseInt key.slice 1
 				@buttons[key].fg = if @buttons[key].fg == 'gray' then 'yellow' else 'gray'
 				settings.sums = @calcSums()
 				@buttons.ok.visible = settings.sums[0] + settings.sums[1] + settings.sums[2] > 0 and settings.sums[5] < 60
