@@ -259,28 +259,21 @@ class SClock extends State
 
 		settings.clocks[settings.player] = clock
 
+	handlePlayer : (player) ->
+		if settings.player in [-1,player]
+			sound.play()
+			settings.clocks[player] += settings.bonuses[player]
+		settings.paused = false
+		settings.player = 1-player
+		@buttons.left.fg  = ['black','white'][player]
+		@buttons.right.fg = ['white','black'][player]
+
 	message : (key) ->
 		if key == 'left'
-			if settings.timeout then return
-			else
-				if settings.player in [-1,0]
-					sound.play()
-					settings.clocks[0] += settings.bonuses[0]
-				settings.paused = false
-				settings.player = 1
-				@buttons.left.fg = 'black'
-				@buttons.right.fg = 'white'
+			if settings.timeout then return else @handlePlayer 0
 
 		else if key == 'right'
-			if settings.timeout then return
-			else
-				if settings.player in [-1,1]
-					sound.play()
-					settings.clocks[1] += settings.bonuses[1]
-				settings.paused = false
-				settings.player = 0
-				@buttons.left.fg = 'white'
-				@buttons.right.fg = 'black'
+			if settings.timeout then return else @handlePlayer 1
 
 		else if key == 'pause'
 			settings.paused = true
@@ -322,12 +315,12 @@ class SBasic extends State
 		@buttons.reflection = new BDead  x[0],20,'reflection'
 		@buttons.bonus      = new BDead  x[1],20,'bonus'
 
-		@buttons.M1   			= new Button x[0],y[0], w,h, '1m'
-		@buttons.M2   			= new Button x[0],y[1], w,h, '2m'
-		@buttons.M3   			= new Button x[0],y[2], w,h, '3m'
-		@buttons.M5   			= new Button x[0],y[3], w,h, '5m'
-		@buttons.M10   			= new Button x[0],y[4], w,h, '10m'
-		@buttons.M90   			= new Button x[0],y[5], w,h, '90m'
+		@buttons.M1   			= new Button x[0],y[1], w,h, '1m'
+		@buttons.M2   			= new Button x[0],y[2], w,h, '2m'
+		@buttons.M3   			= new Button x[0],y[3], w,h, '3m'
+		@buttons.M5   			= new Button x[0],y[4], w,h, '5m'
+		@buttons.M10   			= new Button x[0],y[5], w,h, '10m'
+		@buttons.M90   			= new Button x[0],y[6], w,h, '90m'
 
 		@buttons.s0   			= new Button x[1],y[0], w,h, '0s'
 		@buttons.s1   			= new Button x[1],y[1], w,h, '1s'
@@ -355,11 +348,12 @@ class SBasic extends State
 			settings.timeout = false 
 
 		else # 6+7 shortcut buttons
-			settings.bits = settings.bits.filter (value, index, arr) -> value[0] != key[0]
-			console.log 'filter',settings.bits
+			st = settings
+			st.bits = st.bits.filter (value, index, arr) -> value[0] != key[0]
+			console.log 'filter',st.bits
 			states.SAdvanced.message key
-			settings.sums = states.SAdvanced.calcSums()
-			@buttons.ok.visible = settings.sums.H + settings.sums.M + settings.sums.S > 0 and settings.sums.t < 60
+			st.sums = states.SAdvanced.calcSums()
+			@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		super key
 
@@ -367,9 +361,9 @@ class SAdvanced extends State
 	constructor : (name) ->
 		super name
 		arr = '=> green white orange reflection bonus hcp H M S m s t =>SClock cancel ok =>SBasic basic =>SAdvanced'.split ' '
-		for i in range 6
-			for j in range 6
-				arr.push 'HMSmst'[i] + [1,2,4,8,15,30][j]
+		for letter in 'HMSmst'
+			for number in [1,2,4,8,15,30]
+				arr.push letter + number
 		@createTrans arr.join ' '
 		@uppdatera()
 
@@ -403,36 +397,31 @@ class SAdvanced extends State
 				@buttons[name] = new BEdit name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
-		console.log 'key',key
-		#if key == undefined then return
 		if key == 'basic'
 		else if key == 'advanced'
 		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
-			settings.sums = @calcSums()
 
 		else if key == 'ok'
 			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 			settings.timeout = false 
 		else
-			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's0': '', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
+			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's0':'', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
 				for msg in hash[key].split ' '
 					if msg != '' then @message msg
 			else # 6 x 6 edit buttons
-				settings.bits = @flip settings.bits, key
-				settings.sums = @calcSums()
-				@buttons.ok.visible = settings.sums.H + settings.sums.M + settings.sums.S > 0 and settings.sums.t < 60
+				st = settings
+				st.bits = @flip st.bits, key
+				st.sums = @calcSums()
+				@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		@uppdatera()
 		super key
 		
 	flip : (arr, key) ->
-		if key in arr 
-			_.remove arr, (n) -> n == key
-		else 
-			arr.push key
+		if key in arr then _.remove arr, (n) -> n == key else arr.push key
 		arr
 
 	calcSums : ->
@@ -444,18 +433,14 @@ class SAdvanced extends State
 		res
 
 	uppdatera : ->
-
 		settings.sums = @calcSums()
 		settings.show = @compact()
 		@buttons.white.text = settings.show
 		
 		@handicap()
-		if settings.hcp == 0
-			@buttons.orange.text = ''
-			@buttons.green.text  = ''
-		else
-			@buttons.orange.text = prettyPair settings.players[0][0], settings.players[0][1]
-			@buttons.green.text  = prettyPair settings.players[1][0], settings.players[1][1]
+		sp = settings.players
+		@buttons.orange.text = if settings.hcp == 0 then '' else prettyPair sp[0][0], sp[0][1]
+		@buttons.green.text  = if settings.hcp == 0 then '' else prettyPair sp[1][0], sp[1][1]
 
 	compact : ->
 		keys = 'HMSms'
@@ -474,12 +459,13 @@ class SAdvanced extends State
 		header
 
 	handicap : ->
-		settings.hcp = settings.sums.t / (HCP * 60) # 0.0 .. 1.0
-		settings.refl = HOUR * settings.sums.H + MINUTE * settings.sums.M + settings.sums.S # sekunder
-		settings.bonus =                         MINUTE * settings.sums.m + settings.sums.s # sekunder
-		settings.players = []
-		settings.players[0] = [settings.refl + settings.refl*settings.hcp, settings.bonus + settings.bonus*settings.hcp]
-		settings.players[1] = [settings.refl - settings.refl*settings.hcp, settings.bonus - settings.bonus*settings.hcp]
+		st = settings
+		st.hcp = st.sums.t / (HCP * 60) # 0.0 .. 1.0
+		st.refl = HOUR * st.sums.H + MINUTE * st.sums.M + st.sums.S # sekunder
+		st.bonus =                   MINUTE * st.sums.m + st.sums.s # sekunder
+		st.players = []
+		st.players[0] = [st.refl + st.refl*st.hcp, st.bonus + st.bonus*st.hcp]
+		st.players[1] = [st.refl - st.refl*st.hcp, st.bonus - st.bonus*st.hcp]
 
 ###################################
 
@@ -498,8 +484,6 @@ setup = ->
 	if os.indexOf('Linux') >= 0 then os = 'Android'
 	if os.indexOf('Windows') >= 0 then os = 'Windows'
 	if os.indexOf('Mac') >= 0 then os = 'Mac'
-
-	# os = 'Android'
 
 	canvas = createCanvas innerWidth,innerHeight
 	bodyScrollLock.disableBodyScroll canvas # Förhindrar att man kan scrolla canvas på iOS
@@ -525,9 +509,6 @@ setup = ->
 	
 	#dump()
 	currState = states.SClock
-
-	#checkButtons()
-	#checkStates()
 
 dump = -> # log everything
 	for skey of states 
@@ -572,21 +553,8 @@ debugFunction = ->
 	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
 	sumRate += _.last(rates) - oldest
 
-	# # os = navigator.appVersion
 	textSize 2.5
 	text Math.round(sumRate),95,5
-
-	# text currState.name,50,3
-	# # fill 'green'
-	# text round3(states.SBasic.bonuses[0]),10,3
-	# text round3(states.SBasic.clocks[0]),25,3
-	# text round3(states.SBasic.clocks[1]),75,3
-	# text round3(states.SBasic.bonuses[1]),90,3
-
-	# text states.SClock.paused,30,2.5
-	# text states.SClock.player,70,2.5
-
-	# currState.draw()
 
 loadSettings = ->
 	if localStorage.settings
@@ -603,7 +571,7 @@ loadSettings = ->
 		settings.timeout = false
 		settings.paused = true
 		localStorage.settings = JSON.stringify settings
-	console.log 'settings', settings
+	console.log 'loadSettings', settings
 	settings
 
 saveSettings = ->
@@ -612,31 +580,3 @@ saveSettings = ->
 	lastStorageSave = d
 	localStorage.settings = JSON.stringify settings
 	console.log 'saveSettings',localStorage.settings
-
-# checkButtons = ->
-# 	console.log 'checkButtons started'
-# 	for bkey of buttons
-# 		button = buttons[bkey]
-# 		found = false
-# 		for skey of states
-# 			state = states[skey]
-# 			if bkey of state.transitions then found = true
-# 		if not found then console.log '  Button',bkey,'not used by any state'
-# 	console.log 'checkButtons done!'
-
-# checkStates = ->
-# 	console.log 'checkStates started'
-# 	for skey of states
-# 		state = states[skey]
-# 		found = false
-# 		for tkey of state.transitions
-# 			transition = state.transitions[tkey]
-# 			if transition != undefined and transition not of states then console.log transition,'not found'
-# 			if tkey of buttons then found = true else info = tkey
-# 		if not found then console.log '  State',skey,'Transition',tkey, 'not defined'
-# 	console.log 'checkStates done!'
-
-# arr = []
-# for i in range 60
-# 	arr.push "#{i} #{Math.round((60+i)/(60-i)*1000)/1000}"
-# console.log arr.join "\n"
