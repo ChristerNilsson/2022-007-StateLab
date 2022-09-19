@@ -305,15 +305,15 @@ class SClock extends State
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		arr = '=> bonus green hcp orange reflection white =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s1 s2 s3 s5 s10 s30'.split ' '
+		arr = '=> bonus green hcp orange reflection white =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
 		@createTrans arr.join ' '
-		#states.SAdvanced.uppdatera()
 
 	makeButtons : ->
 
 		x = [30,70]
-		y = [30,40,50,60,70,80,93]
+		y = [28,36,44,52,60,68,76,93]
 		w = 10
+		h = 7
 
 		@buttons.orange     = states.SAdvanced.buttons.orange
 		@buttons.white      = states.SAdvanced.buttons.white
@@ -322,23 +322,24 @@ class SBasic extends State
 		@buttons.reflection = new BDead  x[0],20,'reflection'
 		@buttons.bonus      = new BDead  x[1],20,'bonus'
 
-		@buttons.M1   			= new Button x[0],y[0], w,8, '1m'
-		@buttons.M2   			= new Button x[0],y[1], w,8, '2m'
-		@buttons.M3   			= new Button x[0],y[2], w,8, '3m'
-		@buttons.M5   			= new Button x[0],y[3], w,8, '5m'
-		@buttons.M10   			= new Button x[0],y[4], w,8, '10m'
-		@buttons.M90   			= new Button x[0],y[5], w,8, '90m'
+		@buttons.M1   			= new Button x[0],y[0], w,h, '1m'
+		@buttons.M2   			= new Button x[0],y[1], w,h, '2m'
+		@buttons.M3   			= new Button x[0],y[2], w,h, '3m'
+		@buttons.M5   			= new Button x[0],y[3], w,h, '5m'
+		@buttons.M10   			= new Button x[0],y[4], w,h, '10m'
+		@buttons.M90   			= new Button x[0],y[5], w,h, '90m'
 
-		@buttons.s1   			= new Button x[1],y[0], w,8, '1s'
-		@buttons.s2   			= new Button x[1],y[1], w,8, '2s'
-		@buttons.s3   			= new Button x[1],y[2], w,8, '3s'
-		@buttons.s5   			= new Button x[1],y[3], w,8, '5s'
-		@buttons.s10   			= new Button x[1],y[4], w,8, '10s'
-		@buttons.s30   			= new Button x[1],y[5], w,8, '30s'
+		@buttons.s0   			= new Button x[1],y[0], w,h, '0s'
+		@buttons.s1   			= new Button x[1],y[1], w,h, '1s'
+		@buttons.s2   			= new Button x[1],y[2], w,h, '2s'
+		@buttons.s3   			= new Button x[1],y[3], w,h, '3s'
+		@buttons.s5   			= new Button x[1],y[4], w,h, '5s'
+		@buttons.s10   			= new Button x[1],y[5], w,h, '10s'
+		@buttons.s30   			= new Button x[1],y[6], w,h, '30s'
 
-		@buttons.advanced   = new Button 1*100/6,y[6], 30,8, 'advanced'
-		@buttons.cancel     = new Button 3*100/6,y[6], 30,8, 'cancel'
-		@buttons.ok         = new Button 5*100/6,y[6], 30,8, 'ok'
+		@buttons.advanced   = new Button 1*100/6,y[7], 30,8, 'advanced'
+		@buttons.cancel     = new Button 3*100/6,y[7], 30,8, 'cancel'
+		@buttons.ok         = new Button 5*100/6,y[7], 30,8, 'ok'
 
 	message : (key) ->
 
@@ -353,7 +354,7 @@ class SBasic extends State
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 			settings.timeout = false 
 
-		else # 6+6 shortcut buttons
+		else # 6+7 shortcut buttons
 			settings.bits = settings.bits.filter (value, index, arr) -> value[0] != key[0]
 			console.log 'filter',settings.bits
 			states.SAdvanced.message key
@@ -415,10 +416,10 @@ class SAdvanced extends State
 			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
 			settings.timeout = false 
 		else
-			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
+			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's0': '', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
 				for msg in hash[key].split ' '
-					@message msg
+					if msg != '' then @message msg
 			else # 6 x 6 edit buttons
 				settings.bits = @flip settings.bits, key
 				settings.sums = @calcSums()
@@ -588,7 +589,7 @@ debugFunction = ->
 	# currState.draw()
 
 loadSettings = ->
-	if false and localStorage.settings
+	if localStorage.settings
 		settings = JSON.parse localStorage.settings
 		settings.paused = true
 	else 
