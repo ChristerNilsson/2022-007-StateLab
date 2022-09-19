@@ -92,6 +92,19 @@ class Button
 			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
+class BRounded extends Button
+	constructor : (x,y,w,h,text='',bg='white',fg='black') ->
+		super x,y,w,h,text,bg,fg
+	draw : ->
+		if @visible
+			push()
+			fill @bg
+			rect @x,@y,@w,@h,@h/2
+			textSize 4
+			fill @fg
+			text @text,@x,@y
+			pop()
+
 class BPause extends Button
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
@@ -167,9 +180,31 @@ class BEdit extends Button
 		super x,y,w,h,text,'black'
 	draw : ->
 		push()
+		translate @x,@y
+		fill if @name in settings.bits then 'yellow' else 'white'
+		scale [height/width,width/height][TOGGLE],1
+		circle 0,0,8
+		fill 'black'
 		textSize 5
-		fill if @name in settings.bits then 'yellow' else 'gray'
-		text @text,@x,@y
+		text @text,0,0.2
+		pop()
+	inside : (x,y) ->
+		dx = x-@x
+		dy = y-@y
+		sqrt(dx*dx + dy*dy) < 5
+
+class BBasic extends BEdit
+	constructor : (x,y,w,h,text) -> 
+		super '',x,y,w,h,text
+	draw : ->
+		push()
+		translate @x,@y
+		fill 'white'
+		scale [height/width,width/height][TOGGLE],1
+		circle 0,0,8
+		fill 'black'
+		textSize 5
+		text @text,0,0.2
 		pop()
 
 class BDead extends Button
@@ -298,13 +333,13 @@ class SClock extends State
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		arr = '=> bonus green hcp orange reflection white =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
+		arr = '=> bonus green hcp orange reflection white M s =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
 		@createTrans arr.join ' '
 
 	makeButtons : ->
 
-		x = [30,70]
-		y = [28,36,44,52,60,68,76,93]
+		x = [100/3,200/3]
+		y = [32,41,50,59,68,77,86,95]
 		w = 10
 		h = 7
 
@@ -315,24 +350,28 @@ class SBasic extends State
 		@buttons.reflection = new BDead  x[0],20,'reflection'
 		@buttons.bonus      = new BDead  x[1],20,'bonus'
 
-		@buttons.M1   			= new Button x[0],y[1], w,h, '1m'
-		@buttons.M2   			= new Button x[0],y[2], w,h, '2m'
-		@buttons.M3   			= new Button x[0],y[3], w,h, '3m'
-		@buttons.M5   			= new Button x[0],y[4], w,h, '5m'
-		@buttons.M10   			= new Button x[0],y[5], w,h, '10m'
-		@buttons.M90   			= new Button x[0],y[6], w,h, '90m'
+		@buttons.M          = new BDead  x[0], 25, 'M'
 
-		@buttons.s0   			= new Button x[1],y[0], w,h, '0s'
-		@buttons.s1   			= new Button x[1],y[1], w,h, '1s'
-		@buttons.s2   			= new Button x[1],y[2], w,h, '2s'
-		@buttons.s3   			= new Button x[1],y[3], w,h, '3s'
-		@buttons.s5   			= new Button x[1],y[4], w,h, '5s'
-		@buttons.s10   			= new Button x[1],y[5], w,h, '10s'
-		@buttons.s30   			= new Button x[1],y[6], w,h, '30s'
+		@buttons.M1   			= new BBasic x[0],y[1], w,h, '1'
+		@buttons.M2   			= new BBasic x[0],y[2], w,h, '2'
+		@buttons.M3   			= new BBasic x[0],y[3], w,h, '3'
+		@buttons.M5   			= new BBasic x[0],y[4], w,h, '5'
+		@buttons.M10   			= new BBasic x[0],y[5], w,h, '10'
+		@buttons.M90   			= new BBasic x[0],y[6], w,h, '90'
 
-		@buttons.advanced   = new Button 1*100/6,y[7], 30,8, 'advanced'
-		@buttons.cancel     = new Button 3*100/6,y[7], 30,8, 'cancel'
-		@buttons.ok         = new Button 5*100/6,y[7], 30,8, 'ok'
+		@buttons.s          = new BDead  x[1], 25, 's'
+
+		@buttons.s0   			= new BBasic x[1],y[0], w,h, '0'
+		@buttons.s1   			= new BBasic x[1],y[1], w,h, '1'
+		@buttons.s2   			= new BBasic x[1],y[2], w,h, '2'
+		@buttons.s3   			= new BBasic x[1],y[3], w,h, '3'
+		@buttons.s5   			= new BBasic x[1],y[4], w,h, '5'
+		@buttons.s10   			= new BBasic x[1],y[5], w,h, '10'
+		@buttons.s30   			= new BBasic x[1],y[6], w,h, '30'
+
+		@buttons.advanced   = new BRounded 1*100/6,y[7], 26,6, 'advanced'
+		@buttons.cancel     = new BRounded 3*100/6,y[7], 26,6, 'cancel'
+		@buttons.ok         = new BRounded 5*100/6,y[7], 26,6, 'ok'
 
 	message : (key) ->
 
@@ -340,7 +379,7 @@ class SBasic extends State
 		else if key == 'basic'
 		else if key == 'cancel'
 			settings = clone backup # Återställ allt som behövs
-			settings.sums = states.SAdvanced.calcSums()
+			#settings.sums = states.SAdvanced.calcSums()
 
 		else if key == 'ok'
 			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
@@ -350,10 +389,11 @@ class SBasic extends State
 		else # 6+7 shortcut buttons
 			st = settings
 			st.bits = st.bits.filter (value, index, arr) -> value[0] != key[0]
+			if key[0]=='M' then st.bits = st.bits.filter (value, index, arr) -> value[0] != 'H'
 			console.log 'filter',st.bits
 			states.SAdvanced.message key
 			st.sums = states.SAdvanced.calcSums()
-			@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
+			@buttons.ok.visible = true #st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		super key
 
@@ -377,9 +417,9 @@ class SAdvanced extends State
 		@buttons.bonus      = new BDead  66,21,'bonus'
 		@buttons.hcp        = new BDead  92,21,'hcp'
 
-		@buttons.basic      = new Button 1*100/6,93, 30,8, 'basic'
-		@buttons.cancel     = new Button 3*100/6,93, 30,8, 'cancel'
-		@buttons.ok         = new Button 5*100/6,93, 30,8, 'ok'
+		@buttons.basic      = new BRounded 1*100/6,95, 26,6, 'basic'
+		@buttons.cancel     = new BRounded 3*100/6,95, 26,6, 'cancel'
+		@buttons.ok         = new BRounded 5*100/6,95, 26,6, 'ok'
 
 		@makeEditButtons()
 
