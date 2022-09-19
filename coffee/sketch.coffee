@@ -1,6 +1,5 @@
 # TODO
 # Försämring av frameRate inträffar om man går från fullscreen till normal på Android
-# Ta bort S och m ?
 
 HCP = 1
 HOUR = 3600
@@ -74,6 +73,86 @@ chai.assert.deepEqual hms(180.5), [0,3,0.5]
 
 clone = (x) -> JSON.parse JSON.stringify x
 
+class CSettings
+	constructor : -> 
+		if localStorage.settings
+			Object.assign @, JSON.parse localStorage.settings
+			@paused = true
+			console.log "load" #@
+		else 
+			@show = '3m2s'
+			@bits = ['M1','M2','s2']
+			@clocks = [180,180]
+			@bonuses= [2,2]
+			@sums = [H:0,M:3,S:0,m:0,S:2,t:0]
+			@player = -1 
+			@timeout = false
+			@paused = true
+			@save()
+
+	tick : ->
+		if @paused then return
+		c = @clocks[@player]
+		if c > 0 then c -= 1/frameRate()
+		if c <= 0
+			c = 0
+			@timeout = true
+			@paused = true
+		@clocks[@player] = c
+
+	save : ->
+		d = new Date()
+		if d - lastStorageSave < HEARTBEAT then return # ms
+		lastStorageSave = d
+		localStorage.settings = JSON.stringify @
+		console.log 'save' #,JSON.stringify @
+
+	flip : (key) ->
+		if key in @bits then _.remove @bits, (n) -> n == key else @bits.push key
+		@sums = @calcSums()
+		@show = @compact()
+
+	calcSums : ->
+		res = {H:0,M:0,S:0,m:0,s:0,t:0}
+		for key in settings.bits
+			letter = key[0]
+			number = parseInt key.slice 1
+			res[letter] += number
+		res
+
+	compact : ->
+		keys = 'HMSms'
+		headers = 'hmsms'
+		header0 = ''
+		header1 = ''
+		for i in [0,1,2]
+			key = keys[i]
+			if @sums[key]>0 then header0 += @sums[key] + headers[i]
+		for i in [3,4]
+			key = keys[i]
+			if @sums[key]>0 then header1 += @sums[key] + headers[i]
+		header = header0
+		if header1.length > 0 then header += '+' + header1
+		if @sums.t > 0 then header += '\n' + @sums.t
+		header
+
+	handicap : ->
+		@hcp = @sums.t / (HCP * 60) # 0.0 .. 1.0
+		@refl = HOUR * @sums.H + MINUTE * @sums.M + @sums.S # sekunder
+		@bonus =                 MINUTE * @sums.m + @sums.s # sekunder
+		@players = []
+		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
+		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
+
+	ok : ->
+		@clocks  = [@players[0][0], @players[1][0]]
+		@bonuses = [@players[0][1], @players[1][1]]
+		@timeout = false
+
+	cancel : -> 
+		Object.assign @, backup
+		@paused = true
+
 class Button
 	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
 		@visible = true
@@ -114,7 +193,7 @@ class BPause extends Button
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
 
-class BSettings extends Button # Kugghjul
+class BCogwheel extends Button # Kugghjul
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
 	draw : ->
@@ -145,7 +224,7 @@ class BImage extends Button
 			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
 
 class BRotate extends Button
-	constructor : (x,y,w,h,@degrees,bg,fg,@player) -> 
+	constructor : (x,y,w,h,@degrees,bg,fg,@player) ->
 		super x,y,w,h,'',bg,fg
 
 	draw : ->
@@ -175,8 +254,8 @@ class BRotate extends Button
 
 		pop()
 
-class BEdit extends Button
-	constructor : (@name,x,y,w,h,text) -> 
+class BAdvanced extends Button
+	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
 	draw : ->
 		push()
@@ -193,8 +272,8 @@ class BEdit extends Button
 		dy = y-@y
 		sqrt(dx*dx + dy*dy) < 5
 
-class BBasic extends BEdit
-	constructor : (x,y,w,h,text) -> 
+class BBasic extends BAdvanced
+	constructor : (x,y,w,h,text) ->
 		super '',x,y,w,h,text
 	draw : ->
 		push()
@@ -208,7 +287,7 @@ class BBasic extends BEdit
 		pop()
 
 class BDead extends Button
-	constructor : (x,y,text,fg='lightgray') -> 
+	constructor : (x,y,text,fg='lightgray') ->
 		super x,y,0,0,text,'black',fg
 	draw : ->
 		push()
@@ -218,7 +297,7 @@ class BDead extends Button
 		pop()
 		
 class BShow extends BDead
-	constructor : (x,y,fg='lightgray') -> 
+	constructor : (x,y,fg='lightgray') ->
 		super x,y,0,0,'','black',fg
 	draw : ->
 		@text = settings.show
@@ -277,22 +356,10 @@ class SClock extends State
 	makeButtons : ->
 		@buttons.left  = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
 		@buttons.right = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-
 		@buttons.show  = new BShow     22, 50, 'black'
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
 		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
-		@buttons.edit  = new BSettings 83, 50, 17, 12, 'white', 'black'
-
-	uppdatera : ->
-		if settings.paused then return
-		clock = settings.clocks[settings.player]
-		if clock > 0 then clock -= 1/frameRate()
-		if clock <= 0
-			clock = 0
-			settings.timeout = true
-			settings.paused = true
-
-		settings.clocks[settings.player] = clock
+		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -323,7 +390,7 @@ class SClock extends State
 			backup = clone settings # to be used by cancel
 			console.log 'backup skapad',backup
 
-		saveSettings()
+		settings.save()
 		super key
 
 	draw : ->
@@ -377,23 +444,15 @@ class SBasic extends State
 
 		if key == 'advanced'
 		else if key == 'basic'
-		else if key == 'cancel'
-			settings = clone backup # Återställ allt som behövs
-			#settings.sums = states.SAdvanced.calcSums()
-
-		else if key == 'ok'
-			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
-			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
-			settings.timeout = false 
-
+		else if key == 'cancel' then settings.cancel()
+		else if key == 'ok' then settings.ok()
 		else # 6+7 shortcut buttons
 			st = settings
-			st.bits = st.bits.filter (value, index, arr) -> value[0] != key[0]
-			if key[0]=='M' then st.bits = st.bits.filter (value, index, arr) -> value[0] != 'H'
+			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] not in 'MHS'
+			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] not in 'ms'
 			console.log 'filter',st.bits
 			states.SAdvanced.message key
-			st.sums = states.SAdvanced.calcSums()
-			@buttons.ok.visible = true #st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
+			@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		super key
 
@@ -434,18 +493,13 @@ class SAdvanced extends State
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				@buttons[name] = new BEdit name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
+				@buttons[name] = new BAdvanced name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
 		if key == 'basic'
 		else if key == 'advanced'
-		else if key == 'cancel'
-			settings = clone backup # Återställ allt som behövs
-
-		else if key == 'ok'
-			settings.clocks  = [settings.players[0][0], settings.players[1][0]]
-			settings.bonuses = [settings.players[0][1], settings.players[1][1]]
-			settings.timeout = false 
+		else if key == 'cancel' then settings.cancel()
+		else if key == 'ok' then settings.ok()
 		else
 			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's0':'', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
@@ -453,59 +507,19 @@ class SAdvanced extends State
 					if msg != '' then @message msg
 			else # 6 x 6 edit buttons
 				st = settings
-				st.bits = @flip st.bits, key
-				st.sums = @calcSums()
+				st.flip key
 				@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		@uppdatera()
 		super key
 		
-	flip : (arr, key) ->
-		if key in arr then _.remove arr, (n) -> n == key else arr.push key
-		arr
-
-	calcSums : ->
-		res = {H:0,M:0,S:0,m:0,s:0,t:0}
-		for key in settings.bits
-			letter = key[0]
-			number = parseInt key.slice 1
-			res[letter] += number
-		res
-
 	uppdatera : ->
-		settings.sums = @calcSums()
-		settings.show = @compact()
 		@buttons.white.text = settings.show
 		
-		@handicap()
+		settings.handicap()
 		sp = settings.players
 		@buttons.orange.text = if settings.hcp == 0 then '' else prettyPair sp[0][0], sp[0][1]
 		@buttons.green.text  = if settings.hcp == 0 then '' else prettyPair sp[1][0], sp[1][1]
-
-	compact : ->
-		keys = 'HMSms'
-		headers = 'hmsms'
-		header0 = ''
-		header1 = ''
-		for i in [0,1,2]
-			key = keys[i]
-			if settings.sums[key]>0 then header0 += settings.sums[key] + headers[i]
-		for i in [3,4]
-			key = keys[i]
-			if settings.sums[key]>0 then header1 += settings.sums[key] + headers[i]
-		header = header0
-		if header1.length > 0 then header += '+' + header1
-		if settings.sums.t > 0 then header += '\n' + settings.sums.t
-		header
-
-	handicap : ->
-		st = settings
-		st.hcp = st.sums.t / (HCP * 60) # 0.0 .. 1.0
-		st.refl = HOUR * st.sums.H + MINUTE * st.sums.M + st.sums.S # sekunder
-		st.bonus =                   MINUTE * st.sums.m + st.sums.s # sekunder
-		st.players = []
-		st.players[0] = [st.refl + st.refl*st.hcp, st.bonus + st.bonus*st.hcp]
-		st.players[1] = [st.refl - st.refl*st.hcp, st.bonus - st.bonus*st.hcp]
 
 ###################################
 
@@ -518,6 +532,8 @@ windowResized = ->
 	diag = sqrt width*width + height*height
 
 setup = ->
+
+	settings = new CSettings
 
 	frameRate FRAMERATE
 	os = navigator.appVersion
@@ -540,8 +556,6 @@ setup = ->
 	textAlign CENTER,CENTER
 	rectMode CENTER
 	angleMode DEGREES
-
-	settings = loadSettings()
 
 	createState 'SClock', SClock 
 	createState 'SAdvanced',SAdvanced
@@ -575,11 +589,11 @@ draw = ->
 	strokeWeight 100/height
 	push()
 	background 'black'
-	states.SClock.uppdatera()
+	settings.tick()
 	currState.draw()
 	pop()
 
-	saveSettings()
+	settings.save()
 
 	# debug
 	aspect = (w,h,y) ->
@@ -595,28 +609,3 @@ debugFunction = ->
 
 	textSize 2.5
 	text Math.round(sumRate),95,5
-
-loadSettings = ->
-	if localStorage.settings
-		settings = JSON.parse localStorage.settings
-		settings.paused = true
-	else 
-		settings = {}
-		settings.show = '3m2s'
-		settings.bits = ['M1','M2','s2']
-		settings.clocks = [180,180]
-		settings.bonuses= [2,2]
-		settings.sums = [H:0,M:3,S:0,m:0,S:2,t:0]
-		settings.player = -1 
-		settings.timeout = false
-		settings.paused = true
-		localStorage.settings = JSON.stringify settings
-	console.log 'loadSettings', settings
-	settings
-
-saveSettings = ->
-	d = new Date()
-	if d - lastStorageSave < HEARTBEAT then return # ms
-	lastStorageSave = d
-	localStorage.settings = JSON.stringify settings
-	console.log 'saveSettings',localStorage.settings
