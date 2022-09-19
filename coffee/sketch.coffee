@@ -147,7 +147,8 @@ class CSettings
 	ok : ->
 		@clocks  = [@players[0][0], @players[1][0]]
 		@bonuses = [@players[0][1], @players[1][1]]
-		@timeout = false
+		@timeout = false 
+		@chess960 = chess960()
 
 	cancel : -> 
 		Object.assign @, backup
@@ -531,8 +532,42 @@ windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
-setup = ->
+pick = (lst) -> lst[_.random lst.length-1]
 
+chess960 = ->
+	res = []
+	all = [0,1,2,3,4,5,6,7]
+
+	b0 = pick [0,2,4,6]
+	_.remove all, (value) -> value == b0
+
+	b1 = pick [1,3,5,7]
+	_.remove all, (value) -> value == b1
+
+	q = pick all
+	_.remove all, (value) -> value == q
+
+	n0 = pick all
+	_.remove all, (value) -> value == n0
+
+	n1 = pick all
+	_.remove all, (value) -> value == n1
+
+	r0 = all[0]
+	k = all[1]
+	r1 = all[2]
+
+	res[b0] = 'B'
+	res[b1] = 'B'
+	res[q]  = 'Q'
+	res[n0] = 'N'
+	res[n1] = 'N'
+	res[r0] = 'R'
+	res[k] =  'K'
+	res[r1] = 'R'
+	res.join ' '
+
+setup = ->
 	settings = new CSettings
 
 	frameRate FRAMERATE
@@ -607,5 +642,6 @@ debugFunction = ->
 	if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
 	sumRate += _.last(rates) - oldest
 
-	textSize 2.5
-	text Math.round(sumRate),95,5
+	textSize 3
+	text Math.round(sumRate),50,40
+	text settings.chess960,50,60
