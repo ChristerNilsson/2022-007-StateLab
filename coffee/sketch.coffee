@@ -15,6 +15,8 @@ backup = null
 states = {}
 
 qr = null
+chess = {}
+
 currState = null
 os = ''
 sound = null
@@ -88,7 +90,31 @@ class CSettings
 			@player = -1 
 			@timeout = false
 			@paused = true
+			@chess960 = @random960()
+			@counter = 0
+			@handicap()
+			#@hcp = 0
+			#@refl = 180
+			#@bonus = 2
 			@save()
+		@counter = 0
+
+	random960 : ->
+		res = []
+		all = [0,1,2,3,4,5,6,7]
+		fetch = (lst,piece) ->
+			p = lst[_.random lst.length-1]
+			_.remove all, (value) -> value == p
+			res[p] = piece
+		fetch [0,2,4,6],'B'
+		fetch [1,3,5,7],'B'
+		fetch all,'Q'
+		fetch all,'N'
+		fetch all,'N'
+		res[all[0]] = 'R'
+		res[all[1]] = 'K'
+		res[all[2]] = 'R'
+		res.join ''
 
 	tick : ->
 		if @paused then return
@@ -145,10 +171,14 @@ class CSettings
 		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
 
 	ok : ->
+		@sums = @calcSums()
+		@handicap()
 		@clocks  = [@players[0][0], @players[1][0]]
 		@bonuses = [@players[0][1], @players[1][1]]
-		@timeout = false 
-		@chess960 = chess960()
+		@timeout = false
+		@paused = true
+		@counter++
+		if @counter % 2 == 0 then @chess960 = @random960()
 
 	cancel : -> 
 		Object.assign @, backup
@@ -171,6 +201,22 @@ class Button
 			text @text,@x,@y
 			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
+
+class Chess960 extends Button
+	constructor : (x,y,w,h) ->
+		super x,y,w,h
+		@x = Math.round @x
+		@y = Math.round @y
+		@w = Math.round @w
+		@h = Math.round @h
+		#@pieces = @chess960()
+	draw : ->
+		dx = 6+1
+		w = @h * [height/width,width/height][TOGGLE]
+		for i in range 8
+			image chess[settings.chess960[i]], 1+@x+(i-4)*dx, 1+@y+6, w,@h
+
+
 
 class BRounded extends Button
 	constructor : (x,y,w,h,text='',bg='white',fg='black') ->
@@ -350,7 +396,7 @@ class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock left pause qr right =>SBasic edit => show'
+		@createTrans '=>SClock left pause qr right =>SBasic edit => show chess960'
 		settings.paused = true
 		settings.player = -1
 
@@ -361,6 +407,7 @@ class SClock extends State
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
 		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
 		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
+		@buttons.chess960 = new Chess960 50,50,5,5
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -527,30 +574,13 @@ class SAdvanced extends State
 preload = ->
 	qr = loadImage 'qr.png'
 	sound = loadSound 'key.mp3'
+	for ltr in "KQRBN"
+		chess[ltr] = loadImage "chess\\#{ltr}.png"
 
 windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
-chess960 = ->
-	res = []
-	all = [0,1,2,3,4,5,6,7]
-
-	fetch = (lst,piece) ->
-		p = lst[_.random lst.length-1]
-		_.remove all, (value) -> value == p
-		res[p] = piece
-
-	fetch [0,2,4,6],'B'
-	fetch [1,3,5,7],'B'
-	fetch all,'Q'
-	fetch all,'N'
-	fetch all,'N'
-	res[all[0]] = 'R'
-	res[all[1]] = 'K'
-	res[all[2]] = 'R'
-
-	res.join ' '
 
 setup = ->
 	settings = new CSettings
@@ -626,7 +656,6 @@ debugFunction = ->
 	# rates.push frameRate()
 	# if rates.length > 100 then oldest = rates.shift() else oldest = rates[0]
 	# sumRate += _.last(rates) - oldest
-
-	textSize 3
+	#textSize 3
 	# text Math.round(sumRate),50,40
-	text settings.chess960,50,60
+	#text settings.chess960,50,60

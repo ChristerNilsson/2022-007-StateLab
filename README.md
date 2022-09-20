@@ -1,18 +1,25 @@
-# Chess clock with handicaps
+# Fischer Chess Clock with Handicap and Chess 960
 * Click on any player to start, that is the green or orange button
 
 ![Main screen](Clock1.PNG)
 
 Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PNG" width="25"> button
 
-## Settings
-* Choose hours, minutes and seconds using columns **H**, **M** and **S**
+## Basic Settings
+![Settings](Clock2.PNG)
+* Choose reflection and bonus times
+* Click Advanced to choose times between 60 hour and 1 second, as well as handicap
+* Click ok to start play
+
+## Advanced Settings
+![Settings](Clock2B.PNG)
+* Choose reflection and bonus times. hours, minutes and seconds using columns **H**, **M** and **S**
 * Optionally, choose bonus time, minutes and seconds, using columns **m** and **s**
 * Also optionally, choose a handicap using column **t**
+* Click Basic to return to Basic Settings
+* Click ok to start play
 
-![Settings](Clock2.PNG)
-
-## How to enter numbers
+## How to enter numbers in Advanced Settings
 ```
 1
 2
@@ -38,8 +45,8 @@ Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PN
 * The total game time is the same, before and after the handicap
 
 ### Example:
-* You have decided on a game using 3m + 2s, and would like to give away a quarter of your time to the other player
-* Choosing the handicap 15/60, the adjusted times will be 3m45s + 2.5s and 2m15s + 1.5s
+* You have decided on a game using 3m + 2s, and would like to give away half of your time to the other player
+* Choosing the handicap 30/60, the adjusted times will be 4m30s + 3s and 1m30s + 1s
 * Please note, the total time is still 6m + 4s
 
 ### Handicap Settings
@@ -56,6 +63,23 @@ Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PN
 1. Adjust the handicap with first 30, then 15, then 8, 4, 2, 1, 1 and so on
 1. Repeat from step 2 until the handicap is stable
 
+```
+Example:
+handicap   result
+0
+           Stronger wins
+0+30 = 30
+           S 
+30+15 = 45
+           Weaker wins
+45-8 = 37
+           S
+37+4 = 41
+           W
+41-2 = 39
+           W
+39-1 = 38
+```
 ### Handicap quotas
 ```
 w = Weaker player time
@@ -133,9 +157,9 @@ HCP w/s
 * reflection = the time you have left
 * bonus = time that will be added for every move. (Fischer System)
 * hcp = handicap. Expressed in sixtieths (1/60)
-* h = hour: 0 to 60
-* m = minute: 0 to 60
-* s = second: 0 to 60
+* h = hour: 0 to 59
+* m = minute: 0 to 59
+* s = second: 0 to 59
 * t = handicap: 0 to 59
 
 ### New game
@@ -147,6 +171,16 @@ HCP w/s
 ### Pause the clock
 * Click *pause*
 * Click any player to continue
+
+### Chess 960
+
+![Chess 960](chess960.PNG)
+
+* The randomly positioned chess pieces fulfill Chess 960 rules
+	* Bishops must have *different* colours
+	* King must be *between* rooks
+* They are updated each second time you press **ok** in Settings
+	* Always play two games, with different colours
 
 ### Hidden feature
 * Clicking QR makes the screen full size on Android and Windows
