@@ -1,6 +1,16 @@
 # Fischer Chess Clock with Handicap and Chess 960
 * Click on any player to start, that is the green or orange button
 
+### Pause the clock
+* Click *pause*
+* Click any player to continue
+
+### New game
+* Click *pause*
+* Click *cog wheel*
+* Click **ok**
+* Click any player to start
+
 ![Main screen](Clock1.PNG)
 
 Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PNG" width="25"> button
@@ -8,7 +18,7 @@ Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PN
 ## Basic Settings
 ![Settings](Clock2.PNG)
 * Choose reflection and bonus times
-* Click Advanced to choose times between 60 hour and 1 second, as well as handicap
+* Click Advanced to choose times between 60 hours and one second, as well as handicap
 * Click ok to start play
 
 ## Advanced Settings
@@ -162,22 +172,12 @@ HCP w/s
 * s = second: 0 to 59
 * t = handicap: 0 to 59
 
-### New game
-* Click *pause*
-* Click *cog wheel*
-* Click **ok**
-* Click one of the players to start
-
-### Pause the clock
-* Click *pause*
-* Click any player to continue
-
 ### Chess 960
 
 ![Chess 960](chess960.PNG)
 
 * The randomly positioned chess pieces fulfill Chess 960 rules
-	* Bishops must have *different* colours
+	* Bishops must be on *different* colour squares
 	* King must be *between* rooks
 * They are updated each second time you press **ok** in Settings
 	* Always play two games, with different colours

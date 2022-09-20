@@ -202,21 +202,19 @@ class Button
 			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
-class Chess960 extends Button
+class B960 extends Button
 	constructor : (x,y,w,h) ->
 		super x,y,w,h
 		@x = Math.round @x
 		@y = Math.round @y
 		@w = Math.round @w
 		@h = Math.round @h
-		#@pieces = @chess960()
 	draw : ->
-		dx = 6+1
+		dx = 12
 		w = @h * [height/width,width/height][TOGGLE]
+		xoff = @x + (dx-w)/2
 		for i in range 8
-			image chess[settings.chess960[i]], 1+@x+(i-4)*dx, 1+@y+6, w,@h
-
-
+			image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
 
 class BRounded extends Button
 	constructor : (x,y,w,h,text='',bg='white',fg='black') ->
@@ -292,7 +290,7 @@ class BRotate extends Button
 		rect 0,0,@w,@h
 		fill @fg
 		textSize 18+9
-		text ss,0,-2
+		text ss,0,2
 		textSize 5+3
 
 		#text (if h==0 then 'm:ss' else 'h:mm'),0,17
@@ -354,7 +352,7 @@ class BColor extends Button
 	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
 		push()
-		textAlign CENTER,CENTER
+		#textAlign CENTER,CENTER
 		textSize 4
 		fill @fg
 		text @text,@x,@y
@@ -407,7 +405,7 @@ class SClock extends State
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
 		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
 		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
-		@buttons.chess960 = new Chess960 50,50,5,5
+		@buttons.chess960 = new B960 50,50,6,6
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
