@@ -1,3 +1,9 @@
+# Givet ID räknar chess960 ut konfigurationen.
+# <= 0 ID < 960
+# 518 motsvarar normalt schack, dvs RNBQKBNR
+
+# https://chess-tigers.de/download/chess960_regeln.pdf?PHPSESSID=d71dfe17e7e8aae16adce6f8fb284410
+
 [Q,N,B,X] = 'QNB_'
 
 N0 = [0,0,0,0,1,1,1,2,2,3]
@@ -8,28 +14,26 @@ B1 = [1,3,5,7]
 getEmpty = (arr) ->
 	arr = _.map arr, (value,index) -> if value==X then index else X
 	_.filter arr, (value) -> value != X
+assert [0,1,3], getEmpty [X,X,N,X,N]
 
 fillIn = (piece,places,pieces) ->
 	res = new Array places.length + pieces.length
 	_.fill res,X
-	for place in places
-		res[place] = piece
+	res[place] = piece for place in places
 	empty = getEmpty res
-	for i in _.range pieces.length
-		res[empty[i]] = pieces[i]
-	res
+	res[empty[i]] = pieces[i] for i in _.range pieces.length
+	res.join ''
+assert    'RNKNR', fillIn N, [1,3], 'RKR'
+assert   'RNQKNR', fillIn Q, [2],   'RNKNR'
+assert 'RNBQKBNR', fillIn B, [2,5], 'RNQKNR'
 
 chess960 = (i) -> # 16 microsecs
-
 	q  = i // 16 % 6
 	n0 = N0[i // 96 % 10]
 	n1 = N1[i // 96 % 10]
 	b0 = B0[i // 4 % 4]
 	b1 = B1[i % 4]
-
 	five  = fillIn N,[n0,n1],'RKR'
 	six   = fillIn Q,[q],five
-	eight = fillIn B,[b0,b1],six
-	eight.join ''
-
-console.assert "RNBQKBNR" == chess960 518
+	fillIn B,[b0,b1],six
+assert "RNBQKBNR", chess960 518

@@ -18,16 +18,18 @@ Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PN
 ## Basic Settings
 ![Settings](Clock2.PNG)
 * Choose reflection and bonus times
-* Click Advanced to choose times between 60 hours and one second, as well as handicap
-* Click ok to start play
+* Click *adv* to choose times between 60 hours and one second, as well as handicap
+* Click *960* to choose a Chess960 starting configuration
+* Click *ok* to start play
 
 ## Advanced Settings
 ![Settings](Clock2B.PNG)
 * Choose reflection and bonus times. hours, minutes and seconds using columns **H**, **M** and **S**
 * Optionally, choose bonus time, minutes and seconds, using columns **m** and **s**
 * Also optionally, choose a handicap using column **t**
-* Click Basic to return to Basic Settings
-* Click ok to start play
+* Click *basic* to return to Basic Settings
+* Click *960* to choose a Chess960 starting configuration
+* Click *ok* to start play
 
 ## How to enter numbers in Advanced Settings
 ```
@@ -95,67 +97,27 @@ handicap   result
 w = Weaker player time
 s = Stronger player time
 
-HCP w/s
- 0  1
- 1  1.034
- 2  1.069
- 3  1.105
- 4  1.143
- 5  1.182
- 6  1.222
- 7  1.264
- 8  1.308
- 9  1.353
-10  1.4
-11  1.449
-12  1.5
-13  1.553
-14  1.609
-15  1.667
-16  1.727
-17  1.791
-18  1.857
-19  1.927
-20  2
-21  2.077
-22  2.158
-23  2.243
-24  2.333
-25  2.429
-26  2.529
-27  2.636
-28  2.75
-29  2.871
-30  3
-31  3.138
-32  3.286
-33  3.444
-34  3.615
-35  3.8
-36  4
-37  4.217
-38  4.455
-39  4.714
-40  5
-41  5.316
-42  5.667
-43  6.059
-44  6.5
-45  7
-46  7.571
-47  8.231
-48  9
-49  9.909
-50  11
-51  12.333
-52  14
-53  16.143
-54  19
-55  23
-56  29
-57  39
-58  59
-59  119
+HCP w/s         HCP w/s        HCP w/s
+ 0  1           20  2          40  5
+ 1  1.034       21  2.077      41  5.316
+ 2  1.069       22  2.158      42  5.667
+ 3  1.105       23  2.243      43  6.059
+ 4  1.143       24  2.333      44  6.5
+ 5  1.182       25  2.429      45  7
+ 6  1.222       26  2.529      46  7.571
+ 7  1.264       27  2.636      47  8.231
+ 8  1.308       28  2.75       48  9
+ 9  1.353       29  2.871      49  9.909
+10  1.4         30  3          50  11
+11  1.449       31  3.138      51  12.333
+12  1.5         32  3.286      52  14
+13  1.553       33  3.444      53  16.143
+14  1.609       34  3.615      54  19
+15  1.667       35  3.8        55  23
+16  1.727       36  4          56  29
+17  1.791       37  4.217      57  39
+18  1.857       38  4.455      58  59
+19  1.927       39  4.714      59  119
 ```
 
 ### The QR code
@@ -174,13 +136,18 @@ HCP w/s
 
 ### Chess 960
 
-![Chess 960](chess960.PNG)
+[Fischer Random Chess](https://en.wikipedia.org/wiki/Fischer_random_chess)
+
+![Chess 960](960.PNG)
 
 * The randomly positioned chess pieces fulfill Chess 960 rules
 	* Bishops must be on *different* colour squares
-	* King must be *between* rooks
-* They are updated each second time you press **ok** in Settings
-	* Always play two games, with different colours
+	* King must be *between* the rooks and will castle to file c or g, as in normal chess
+* Press **random** or specify an ID using the number buttons
+	* [Chess960 Startpositionen & Regeln](https://chess-tigers.de/download/chess960_regeln.pdf?PHPSESSID=d71dfe17e7e8aae16adce6f8fb284410)
+* Click *basic* to return to Basic Settings
+* Click *adv* to choose times between 60 hours and one second, as well as handicap
+* Click *ok* to start play
 
 ### Hidden feature
 * Clicking QR makes the screen full size on Android and Windows
