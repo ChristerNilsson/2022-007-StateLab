@@ -2,8 +2,9 @@
 # Försämring av frameRate inträffar om man går från fullscreen till normal på Android
 
 HCP = 1
-HOUR = 3600
-MINUTE = 60
+HOUR = 60*60*60
+MINUTE = 60*60
+SEC = 60
 
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
@@ -27,51 +28,51 @@ sumRate = 0
 
 diag = 0 
 
-getLocalCoords = -> # tar 3 microsekunder
+getLocalCoords = ->
 	matrix = drawingContext.getTransform()
 	pd = pixelDensity()
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
 createState = (key,klass) -> states[key] = new klass key
 
-trunc3 = (x) -> Math.trunc(x*1000)/1000
-assert 12.345, trunc3 12.345678
+# Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
 pretty = (tot) ->
+	tot = Math.round tot
+	t = tot % 60
+	tot = (tot - t) / 60
 	s = tot % 60
 	tot = (tot - s) / 60
-	m = tot % 60
-	tot = (tot - m) / 60
-	h = tot % 60
+	m = tot # % 60
 	header = ''
-	if trunc3(h)>0 then header += trunc3(h) + 'h'
-	if trunc3(m)>0 then header += trunc3(m) + 'm'
-	if trunc3(s)>0 then header += trunc3(s) + 's'
+	if m > 0 then header += m + 'm'
+	if s > 0 then header += s + 's'
+	if t > 0 then header += t + 't'
 	header
-assert '1h1s', pretty 3601
-assert '2m3s', pretty 123
+assert '1m1t', pretty 3601
+assert '2s3t', pretty 123
 
 prettyPair = (a,b) ->
 	separator = if pretty(b) != '' then ' + ' else ''
 	pretty(a) + separator + pretty(b)
-assert '1h1s + 2m3s', prettyPair 3601,123
+assert '1m1t + 2s3t', prettyPair 3601,123
 
 d2 = (x) ->
 	x = Math.trunc x
 	if x < 10 then '0'+x else x
 assert '03', d2 3
 
-hms = (x) ->
+mst = (x) -> # tertier
 	orig = x
+	t = x %% 60
+	x = x // 60
 	s = x %% 60
 	x = x // 60
-	m = x %% 60
-	x = x // 60
-	h = x
-	if orig < 10 then s = Math.trunc(s*10)/10 
-	[h,m,s] 
-assert [0,3,0], hms 180
-assert [0,3,0.5], hms 180.5
+	m = x
+	#if orig < 10 then s = Math.trunc(s*10)/10 
+	[m,s,t] 
+assert [3,0,0], mst 3*60*60
+assert [3,0,30], mst 180*60+30
 
 clone = (x) -> JSON.parse JSON.stringify x
 
@@ -88,11 +89,11 @@ class CSettings
 		@chess960 ||= 'RNBQKBNR'
 		@sums960 ||= {R:518}
 
-		@show ||= '3m2s'
+		@show ||= '3 + 2'
 		@bits ||= ['M1','M2','s2']
-		@clocks ||= [180,180]
-		@bonuses ||= [2,2]
-		@sums ||= [H:0,M:3,S:0,m:0,S:2,t:0]
+		@clocks ||= [180*60,180*60]
+		@bonuses ||= [2*60,2*60]
+		@sums ||= [M:3,s:2,t:0]
 		@player ||= -1 
 		@timeout ||= false
 		@paused = true
@@ -100,28 +101,10 @@ class CSettings
 		@handicap()
 		@save()
 
-	# random960 : ->
-	# 	res = []
-	# 	all = [0,1,2,3,4,5,6,7]
-	# 	place = (lst,piece) ->
-	# 		p = lst[_.random lst.length-1]
-	# 		_.remove all, (value) -> value == p
-	# 		res[p] = piece
-	# 	place [0,2,4,6],'B'
-	# 	place [1,3,5,7],'B'
-	# 	place all,'Q'
-	# 	place all,'N'
-	# 	place all,'N'
-	# 	[R0,K,R1] = all
-	# 	res[R0] = 'R'
-	# 	res[K] = 'K'
-	# 	res[R1] = 'R'
-	# 	res.join ''
-
 	tick : ->
 		if @paused then return
 		c = @clocks[@player]
-		if c > 0 then c -= 1/frameRate()
+		if c > 0 then c -= 60/frameRate()
 		if c <= 0
 			c = 0
 			@timeout = true
@@ -147,7 +130,7 @@ class CSettings
 		@chess960 = chess960 @number
 
 	calcSums : ->
-		res = {H:0,M:0,S:0,m:0,s:0,t:0}
+		res = {M:0,s:0,t:0}
 		for key in settings.bits
 			letter = key[0]
 			number = parseInt key.slice 1
@@ -163,16 +146,10 @@ class CSettings
 		res
 
 	compact : ->
-		keys = 'HMSms'
-		headers = 'hmsms'
 		header0 = ''
 		header1 = ''
-		for i in [0,1,2]
-			key = keys[i]
-			if @sums[key]>0 then header0 += @sums[key] + headers[i]
-		for i in [3,4]
-			key = keys[i]
-			if @sums[key]>0 then header1 += @sums[key] + headers[i]
+		if @sums.M > 0 then header0 += @sums.M
+		if @sums.s > 0 then header1 += @sums.s
 		header = header0
 		if header1.length > 0 then header += '+' + header1
 		if @sums.t > 0 then header += '\n' + @sums.t
@@ -180,8 +157,8 @@ class CSettings
 
 	handicap : ->
 		@hcp = @sums.t / (HCP * 60) # 0.0 .. 1.0
-		@refl = HOUR * @sums.H + MINUTE * @sums.M + @sums.S # sekunder
-		@bonus =                 MINUTE * @sums.m + @sums.s # sekunder
+		@refl  = MINUTE * @sums.M # tertier
+		@bonus =    SEC * @sums.s # tertier
 		@players = []
 		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
 		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
@@ -201,10 +178,10 @@ class CSettings
 class Button
 	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
 		@visible = true
-		@x = Math.round @x
-		@y = Math.round @y
-		@w = Math.round @w
-		@h = Math.round @h
+		# @x = Math.round @x
+		# @y = Math.round @y
+		# @w = Math.round @w
+		# @h = Math.round @h
 	draw : ->
 		if @visible
 			push()
@@ -301,28 +278,29 @@ class BRotate extends Button
 		super x,y,w,h,'',bg,fg
 
 	draw : ->
-		secs = settings.clocks[@player]
-		[h,m,s] = hms secs
-		if h >= 1 then ss = h + ':' + d2 m
-		else ss = m + ':' + if secs < 10  then s.toFixed 1 else d2 s
+		tertier = settings.clocks[@player]
+		[m,s,t] = mst tertier
+		t = Math.round t
+		ss = m + ':' + d2 s
+
 		noStroke()
 		push()
 		translate @x,@y
 		rotate @degrees
 
-		if settings.timeout and settings.player == @player
-			@bg = 'red'
-			@fg = 'black'
+		bakgrund = if settings.timeout and settings.player == @player then 'red' else @bg
+		förgrund = if settings.timeout and settings.player == @player then 'black' else @fg
 
-		fill @bg
+		fill bakgrund
 		rect 0,0,@w,@h
-		fill @fg
+		fill förgrund
 		textSize 18+9
 		text ss,0,2
-		textSize 5+3
+		textSize 10
+		if tertier < 10*60 then text t,40,0
 
-		#text (if h==0 then 'm:ss' else 'h:mm'),0,17
 		if settings.bonuses[@player] > 0
+			textSize 8
 			text '+' + pretty(settings.bonuses[@player]),0,17
 
 		pop()
@@ -335,7 +313,7 @@ class BAdv extends Button
 		translate @x,@y
 		fill if @name in settings.bits then 'yellow' else 'white'
 		scale [height/width,width/height][TOGGLE],1
-		circle 0,0,8
+		circle 0,0,7
 		fill 'black'
 		textSize 5
 		text @text,0,0.2
@@ -451,7 +429,6 @@ class SClock extends State
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
 		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
 		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
-		#@buttons.chess960 = new B960 50,50,6,6
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -509,7 +486,7 @@ class SBasic extends State
 		@buttons.reflection = new BDead  x[0],20,'reflection'
 		@buttons.bonus      = new BDead  x[1],20,'bonus'
 
-		@buttons.M          = new BDead  x[0], 25, 'M'
+		@buttons.M          = new BDead  x[0], 25, 'minutes'
 
 		@buttons.M1   			= new BBasic x[0],y[1], w,h, '1'
 		@buttons.M2   			= new BBasic x[0],y[2], w,h, '2'
@@ -518,7 +495,7 @@ class SBasic extends State
 		@buttons.M10   			= new BBasic x[0],y[5], w,h, '10'
 		@buttons.M90   			= new BBasic x[0],y[6], w,h, '90'
 
-		@buttons.s          = new BDead  x[1], 25, 's'
+		@buttons.s          = new BDead  x[1], 25, 'seconds'
 
 		@buttons.s0   			= new BBasic x[1],y[0], w,h, '0'
 		@buttons.s1   			= new BBasic x[1],y[1], w,h, '1'
@@ -534,10 +511,6 @@ class SBasic extends State
 		@buttons.cancel     = new BRounded 7*100/10,y[7], 18,6, 'cancel'
 		@buttons.ok         = new BRounded 9*100/10,y[7], 18,6, 'ok'
 
-		# @buttons.advanced   = new BRounded 1*100/6,y[7], 26,6, 'advanced'
-		# @buttons.cancel     = new BRounded 3*100/6,y[7], 26,6, 'cancel'
-		# @buttons.ok         = new BRounded 5*100/6,y[7], 26,6, 'ok'
-
 	message : (key) ->
 
 		if key == 'adv'
@@ -547,33 +520,33 @@ class SBasic extends State
 		else if key == 'ok' then settings.ok()
 		else # 6+7 shortcut buttons
 			st = settings
-			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] not in 'MHS'
-			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] not in 'ms'
+			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] != 'M'
+			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] != 's'
 			console.log 'filter',st.bits
 			states.SAdv.message key
-			@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
+			@buttons.ok.visible = st.sums.M > 0 and st.sums.t < 60
 
 		super key
 
 class SAdv extends State
 	constructor : (name) ->
 		super name
-		arr = '=> green white orange reflection bonus hcp H M S m s t =>SBasic basic =>SAdv adv =>S960 b960 =>SClock cancel ok =>SBasic basic =>SAdv'.split ' '
-		for letter in 'HMSmst'
-			for number in [1,2,4,8,15,30]
+		arr = '=> green white orange reflection bonus hcp M s t =>SBasic basic =>SAdv adv =>S960 b960 =>SClock cancel ok =>SBasic basic =>SAdv'.split ' '
+		for letter in 'Mst'
+			for number in [1,2,4,8,15,30,60]
 				arr.push letter + number
 		@createTrans arr.join ' '
 		@uppdatera()
 
 	makeButtons : ->
 
-		@buttons.orange     = new BColor 50, 3,'orange'
-		@buttons.white      = new BColor 50, 9,'white'
-		@buttons.green      = new BColor 50,15,'green'
+		@buttons.orange     = new BColor 50, 2.5,'orange'
+		@buttons.white      = new BColor 50, 9.5,'white'
+		@buttons.green      = new BColor 50,16.5,'green'
 
 		@buttons.reflection = new BDead  25,21,'reflection'
-		@buttons.bonus      = new BDead  66,21,'bonus'
-		@buttons.hcp        = new BDead  92,21,'hcp'
+		@buttons.bonus      = new BDead  50,21,'bonus'
+		@buttons.hcp        = new BDead  75,21,'handicap'
 
 		y = 95
 
@@ -586,17 +559,18 @@ class SAdv extends State
 		@makeEditButtons()
 
 	makeEditButtons : ->
-		for i in range 6
-			letter = 'HMSmst'[i]
-			xsize = 100/6
-			ysize = 100/10
-			xoff = xsize/2
+		for i in range 3
+			letter = 'Mst'[i]
+			xsize = 100/4
+			ysize = 100/12
+			xoff = xsize
 			yoff = 33+2
-			@buttons[letter] = new BDead xoff+xsize*i, 26+2, 'HMSmst'[i]
-			for j in range 6
-				number = [1,2,4,8,15,30][j]
+			@buttons[letter] = new BDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
+			for j in range 7
+				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
-				@buttons[name] = new BAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
+				if i!=2 or j!=6
+					@buttons[name] = new BAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
 		if key == 'basic'
@@ -604,14 +578,14 @@ class SAdv extends State
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else
-			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'H1 M30', 's0':'', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
+			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's0':'', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
 				for msg in hash[key].split ' '
 					if msg != '' then @message msg
-			else # 6 x 6 edit buttons
+			else # 3 x 7 edit buttons
 				st = settings
 				st.flip key
-				@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
+				@buttons.ok.visible = st.sums.M > 0 and st.sums.t < 60
 
 		@uppdatera()
 		super key
@@ -761,10 +735,17 @@ draw = ->
 
 	# debug
 	aspect = (w,h,y) ->
-		if w<h then [w,h] = [h,w]
+		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	debugFunction()
+	indicator()
+
+indicator = ->
+	a = settings.clocks[0]
+	b = settings.clocks[1]
+	andel = 100 * a/(a+b)
+	line  0,andel, 10,andel
+	line 90,andel,100,andel
 
 debugFunction = ->
 	# rates.push frameRate()
