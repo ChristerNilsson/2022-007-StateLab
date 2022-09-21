@@ -79,42 +79,44 @@ class CSettings
 	constructor : -> 
 		if localStorage.settings
 			Object.assign @, JSON.parse localStorage.settings
-			@paused = true
-			console.log "load" #@
-		else 
-			@show = '3m2s'
-			@bits = ['M1','M2','s2']
-			@clocks = [180,180]
-			@bonuses= [2,2]
-			@sums = [H:0,M:3,S:0,m:0,S:2,t:0]
-			@player = -1 
-			@timeout = false
-			@paused = true
-			@chess960 = @random960()
-			@counter = 0
-			@handicap()
-			#@hcp = 0
-			#@refl = 180
-			#@bonus = 2
-			@save()
-		@counter = 0
+			console.log "load"
+		else
+			console.log "default"
 
-	random960 : ->
-		res = []
-		all = [0,1,2,3,4,5,6,7]
-		fetch = (lst,piece) ->
-			p = lst[_.random lst.length-1]
-			_.remove all, (value) -> value == p
-			res[p] = piece
-		fetch [0,2,4,6],'B'
-		fetch [1,3,5,7],'B'
-		fetch all,'Q'
-		fetch all,'N'
-		fetch all,'N'
-		res[all[0]] = 'R'
-		res[all[1]] = 'K'
-		res[all[2]] = 'R'
-		res.join ''
+		@bits960 ||= ['R480','R30','R8']
+		@number ||= 518
+		@chess960 ||= 'RNBQKBNR'
+		@sums960 ||= {R:518}
+
+		@show ||= '3m2s'
+		@bits ||= ['M1','M2','s2']
+		@clocks ||= [180,180]
+		@bonuses ||= [2,2]
+		@sums ||= [H:0,M:3,S:0,m:0,S:2,t:0]
+		@player ||= -1 
+		@timeout ||= false
+		@paused = true
+
+		@handicap()
+		@save()
+
+	# random960 : ->
+	# 	res = []
+	# 	all = [0,1,2,3,4,5,6,7]
+	# 	place = (lst,piece) ->
+	# 		p = lst[_.random lst.length-1]
+	# 		_.remove all, (value) -> value == p
+	# 		res[p] = piece
+	# 	place [0,2,4,6],'B'
+	# 	place [1,3,5,7],'B'
+	# 	place all,'Q'
+	# 	place all,'N'
+	# 	place all,'N'
+	# 	[R0,K,R1] = all
+	# 	res[R0] = 'R'
+	# 	res[K] = 'K'
+	# 	res[R1] = 'R'
+	# 	res.join ''
 
 	tick : ->
 		if @paused then return
@@ -138,9 +140,23 @@ class CSettings
 		@sums = @calcSums()
 		@show = @compact()
 
+	flip960 : (key) ->
+		if key in @bits960 then _.remove @bits960, (n) -> n == key else @bits960.push key
+		@sums960 = @calcSums960()
+		@number = @sums960.R
+		@chess960 = chess960 @number
+
 	calcSums : ->
 		res = {H:0,M:0,S:0,m:0,s:0,t:0}
 		for key in settings.bits
+			letter = key[0]
+			number = parseInt key.slice 1
+			res[letter] += number
+		res
+
+	calcSums960 : ->
+		res = {R:0}
+		for key in settings.bits960
 			letter = key[0]
 			number = parseInt key.slice 1
 			res[letter] += number
@@ -177,8 +193,6 @@ class CSettings
 		@bonuses = [@players[0][1], @players[1][1]]
 		@timeout = false
 		@paused = true
-		@counter++
-		if @counter % 2 == 0 then @chess960 = @random960()
 
 	cancel : -> 
 		Object.assign @, backup
@@ -202,6 +216,18 @@ class Button
 			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
+class BNumber extends Button
+	constructor : (x,y) ->
+		super x,y,0,0
+		@x = Math.round @x
+		@y = Math.round @y
+	draw : ->
+		push()
+		textSize 4
+		fill 'white'
+		text settings.sums960.R,@x,@y
+		pop()
+
 class B960 extends Button
 	constructor : (x,y,w,h) ->
 		super x,y,w,h
@@ -209,20 +235,22 @@ class B960 extends Button
 		@y = Math.round @y
 		@w = Math.round @w
 		@h = Math.round @h
+		@visible = true
 	draw : ->
-		dx = 12
-		w = @h * [height/width,width/height][TOGGLE]
-		xoff = @x + (dx-w)/2
-		for i in range 8
-			image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
+		if @visible
+			dx = 12
+			w = @h * [height/width,width/height][TOGGLE]
+			xoff = @x + (dx-w)/2
+			for i in range 8
+				image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
 
 class BRounded extends Button
-	constructor : (x,y,w,h,text='',bg='white',fg='black') ->
+	constructor : (x,y,w,h,text='',@disabled=false,bg='white',fg='black') ->
 		super x,y,w,h,text,bg,fg
 	draw : ->
 		if @visible
 			push()
-			fill @bg
+			fill if @disabled then "gray" else @bg
 			rect @x,@y,@w,@h,@h/2
 			textSize 4
 			fill @fg
@@ -299,7 +327,7 @@ class BRotate extends Button
 
 		pop()
 
-class BAdvanced extends Button
+class BAdv extends Button
 	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
 	draw : ->
@@ -317,7 +345,25 @@ class BAdvanced extends Button
 		dy = y-@y
 		sqrt(dx*dx + dy*dy) < 5
 
-class BBasic extends BAdvanced
+class BAdv960 extends Button
+	constructor : (@name,x,y,w,h,text) ->
+		super x,y,w,h,text,'black'
+	draw : ->
+		push()
+		translate @x,@y
+		fill if @name in settings.bits960 then 'yellow' else 'white'
+		scale [height/width,width/height][TOGGLE],1
+		circle 0,0,@w
+		fill 'black'
+		textSize 5
+		text @text,0,0.2
+		pop()
+	inside : (x,y) ->
+		dx = x-@x
+		dy = y-@y
+		sqrt(dx*dx + dy*dy) < 5
+
+class BBasic extends BAdv
 	constructor : (x,y,w,h,text) ->
 		super '',x,y,w,h,text
 	draw : ->
@@ -325,7 +371,7 @@ class BBasic extends BAdvanced
 		translate @x,@y
 		fill 'white'
 		scale [height/width,width/height][TOGGLE],1
-		circle 0,0,8
+		circle 0,0,@w
 		fill 'black'
 		textSize 5
 		text @text,0,0.2
@@ -405,7 +451,7 @@ class SClock extends State
 		@buttons.qr    = new BImage    50, 50, 33, 12, qr
 		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
 		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
-		@buttons.chess960 = new B960 50,50,6,6
+		#@buttons.chess960 = new B960 50,50,6,6
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -446,19 +492,19 @@ class SClock extends State
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		arr = '=> bonus green hcp orange reflection white M s =>SClock cancel ok =>SAdvanced advanced =>SBasic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
+		arr = '=> bonus green hcp orange reflection white M s =>SClock cancel ok =>S960 b960 =>SAdv adv =>SBasic basic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
 		@createTrans arr.join ' '
 
 	makeButtons : ->
 
 		x = [100/3,200/3]
 		y = [32,41,50,59,68,77,86,95]
-		w = 10
-		h = 7
+		w = 8
+		h = 6
 
-		@buttons.orange     = states.SAdvanced.buttons.orange
-		@buttons.white      = states.SAdvanced.buttons.white
-		@buttons.green      = states.SAdvanced.buttons.green
+		@buttons.orange     = states.SAdv.buttons.orange
+		@buttons.white      = states.SAdv.buttons.white
+		@buttons.green      = states.SAdv.buttons.green
 
 		@buttons.reflection = new BDead  x[0],20,'reflection'
 		@buttons.bonus      = new BDead  x[1],20,'bonus'
@@ -482,14 +528,21 @@ class SBasic extends State
 		@buttons.s10   			= new BBasic x[1],y[5], w,h, '10'
 		@buttons.s30   			= new BBasic x[1],y[6], w,h, '30'
 
-		@buttons.advanced   = new BRounded 1*100/6,y[7], 26,6, 'advanced'
-		@buttons.cancel     = new BRounded 3*100/6,y[7], 26,6, 'cancel'
-		@buttons.ok         = new BRounded 5*100/6,y[7], 26,6, 'ok'
+		@buttons.basic      = new BRounded 1*100/10,y[7], 18,6, 'basic',true
+		@buttons.adv        = new BRounded 3*100/10,y[7], 18,6, 'adv'
+		@buttons.b960       = new BRounded 5*100/10,y[7], 18,6, '960'
+		@buttons.cancel     = new BRounded 7*100/10,y[7], 18,6, 'cancel'
+		@buttons.ok         = new BRounded 9*100/10,y[7], 18,6, 'ok'
+
+		# @buttons.advanced   = new BRounded 1*100/6,y[7], 26,6, 'advanced'
+		# @buttons.cancel     = new BRounded 3*100/6,y[7], 26,6, 'cancel'
+		# @buttons.ok         = new BRounded 5*100/6,y[7], 26,6, 'ok'
 
 	message : (key) ->
 
-		if key == 'advanced'
+		if key == 'adv'
 		else if key == 'basic'
+		#else if key == 's960'
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else # 6+7 shortcut buttons
@@ -497,15 +550,15 @@ class SBasic extends State
 			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] not in 'MHS'
 			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] not in 'ms'
 			console.log 'filter',st.bits
-			states.SAdvanced.message key
+			states.SAdv.message key
 			@buttons.ok.visible = st.sums.H + st.sums.M + st.sums.S > 0 and st.sums.t < 60
 
 		super key
 
-class SAdvanced extends State
+class SAdv extends State
 	constructor : (name) ->
 		super name
-		arr = '=> green white orange reflection bonus hcp H M S m s t =>SClock cancel ok =>SBasic basic =>SAdvanced'.split ' '
+		arr = '=> green white orange reflection bonus hcp H M S m s t =>SBasic basic =>SAdv adv =>S960 b960 =>SClock cancel ok =>SBasic basic =>SAdv'.split ' '
 		for letter in 'HMSmst'
 			for number in [1,2,4,8,15,30]
 				arr.push letter + number
@@ -522,9 +575,13 @@ class SAdvanced extends State
 		@buttons.bonus      = new BDead  66,21,'bonus'
 		@buttons.hcp        = new BDead  92,21,'hcp'
 
-		@buttons.basic      = new BRounded 1*100/6,95, 26,6, 'basic'
-		@buttons.cancel     = new BRounded 3*100/6,95, 26,6, 'cancel'
-		@buttons.ok         = new BRounded 5*100/6,95, 26,6, 'ok'
+		y = 95
+
+		@buttons.basic      = new BRounded 1*100/10,y, 18,6, 'basic'
+		@buttons.adv        = new BRounded 3*100/10,y, 18,6, 'adv', true
+		@buttons.b960       = new BRounded 5*100/10,y, 18,6, '960'
+		@buttons.cancel     = new BRounded 7*100/10,y, 18,6, 'cancel'
+		@buttons.ok         = new BRounded 9*100/10,y, 18,6, 'ok'
 
 		@makeEditButtons()
 
@@ -539,7 +596,7 @@ class SAdvanced extends State
 			for j in range 6
 				number = [1,2,4,8,15,30][j]
 				name = letter + number
-				@buttons[name] = new BAdvanced name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
+				@buttons[name] = new BAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
 		if key == 'basic'
@@ -567,6 +624,65 @@ class SAdvanced extends State
 		@buttons.orange.text = if settings.hcp == 0 then '' else prettyPair sp[0][0], sp[0][1]
 		@buttons.green.text  = if settings.hcp == 0 then '' else prettyPair sp[1][0], sp[1][1]
 
+class S960 extends State
+	constructor : (name) ->
+		super name
+		arr = '=> B960 BNumber =>SClock cancel ok =>SAdv adv =>SBasic basic =>S960 b960 random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'.split ' '
+		@createTrans arr.join ' '
+		@makeButtons()
+
+	makeButtons : ->
+
+		x = [100/4,200/4,300/4]
+		y = [-5,30+10,42+10,54+10,66+10,78,90,95]
+		w = 11
+		h = 10
+
+		@buttons.B960   		= new B960    50,y[0], 100, 10
+		@buttons.BNumber    = new BNumber 50,20
+
+		@buttons.R1   			= new BAdv960 'R1', x[0],y[1], w,h, '1'
+		@buttons.R2   			= new BAdv960 'R2', x[0],y[2], w,h, '2'
+		@buttons.R4   			= new BAdv960 'R4', x[0],y[3], w,h, '4'
+		@buttons.R8   			= new BAdv960 'R8', x[0],y[4], w,h, '8'
+		
+		@buttons.R15   			= new BAdv960 'R15',x[1],y[1], w,h, '15'
+		@buttons.R30   			= new BAdv960 'R30',x[1],y[2], w,h, '30'
+		@buttons.R60   			= new BAdv960 'R60',x[1],y[3], w,h, '60'
+
+		@buttons.R120  			= new BAdv960 'R120',x[2],y[1], w,h, '120'
+		@buttons.R240 			= new BAdv960 'R240',x[2],y[2], w,h, '240'
+		@buttons.R480  			= new BAdv960 'R480',x[2],y[3], w,h, '480'
+
+		@buttons.random     = new BRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
+
+		@buttons.basic      = new BRounded 1*100/10,y[7], 18,6, 'basic'
+		@buttons.adv        = new BRounded 3*100/10,y[7], 18,6, 'adv'
+		@buttons.b960       = new BRounded 5*100/10,y[7], 18,6, '960',true
+		@buttons.cancel     = new BRounded 7*100/10,y[7], 18,6, 'cancel'
+		@buttons.ok         = new BRounded 9*100/10,y[7], 18,6, 'ok'
+
+	message : (key) ->
+		if key == 'adv'
+		else if key == 'basic'
+		else if key == 'b960'
+		else if key == 'cancel' then settings.cancel()
+		else if key == 'ok' then settings.ok()
+		else if key[0] == 'R'
+			settings.flip960 key # 10 buttons
+			console.log settings.number
+			@buttons.B960.visible = settings.number < 960
+		else if key == 'random' 
+			nr = _.random 0,959
+			settings.number = nr
+			settings.bits960 = []
+			for value in [480,240,120,60,30,15,8,4,2,1]
+				if nr >= value
+					nr -= value
+					settings.flip960 'R' + value
+			@buttons.B960.visible = settings.number < 960
+		super key
+
 ###################################
 
 preload = ->
@@ -578,7 +694,6 @@ preload = ->
 windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
-
 
 setup = ->
 	settings = new CSettings
@@ -606,8 +721,9 @@ setup = ->
 	angleMode DEGREES
 
 	createState 'SClock', SClock 
-	createState 'SAdvanced',SAdvanced
+	createState 'SAdv',SAdv
 	createState 'SBasic',SBasic
+	createState 'S960',S960
 	
 	#dump()
 	currState = states.SClock
