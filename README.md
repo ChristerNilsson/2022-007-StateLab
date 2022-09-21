@@ -144,7 +144,8 @@ HCP w/s         HCP w/s        HCP w/s
 	* Bishops must be on *different* colour squares
 	* King must be *between* the rooks and will castle to file c or g, as in normal chess
 * Press **random** or specify an ID using the number buttons
-	* [Chess960 Startpositionen & Regeln](https://chess-tigers.de/download/chess960_regeln.pdf?PHPSESSID=d71dfe17e7e8aae16adce6f8fb284410)
+	* [Chess960 Rules](https://lichess.org/variant/chess960)
+	* [Chess960 starting positions](https://chess960.net/wp-content/uploads/2018/02/chess960-starting-positions.pdf)
 * Click *basic* to return to Basic Settings
 * Click *adv* to choose times between 60 hours and one second, as well as handicap
 * Click *ok* to start play

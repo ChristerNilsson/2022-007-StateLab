@@ -35,7 +35,7 @@ getLocalCoords = -> # tar 3 microsekunder
 createState = (key,klass) -> states[key] = new klass key
 
 trunc3 = (x) -> Math.trunc(x*1000)/1000
-console.assert trunc3(12.345678)==12.345
+assert 12.345, trunc3 12.345678
 
 pretty = (tot) ->
 	s = tot % 60
@@ -48,18 +48,18 @@ pretty = (tot) ->
 	if trunc3(m)>0 then header += trunc3(m) + 'm'
 	if trunc3(s)>0 then header += trunc3(s) + 's'
 	header
-console.assert pretty(3601) == '1h1s'
-console.assert pretty(123) == '2m3s'
+assert '1h1s', pretty 3601
+assert '2m3s', pretty 123
 
 prettyPair = (a,b) ->
 	separator = if pretty(b) != '' then ' + ' else ''
 	pretty(a) + separator + pretty(b)
-console.assert prettyPair(3601,123) == '1h1s + 2m3s'
+assert '1h1s + 2m3s', prettyPair 3601,123
 
 d2 = (x) ->
 	x = Math.trunc x
 	if x < 10 then '0'+x else x
-console.assert d2(3) == '03'
+assert '03', d2 3
 
 hms = (x) ->
 	orig = x
@@ -70,8 +70,8 @@ hms = (x) ->
 	h = x
 	if orig < 10 then s = Math.trunc(s*10)/10 
 	[h,m,s] 
-chai.assert.deepEqual hms(180), [0,3,0]
-chai.assert.deepEqual hms(180.5), [0,3,0.5]
+assert [0,3,0], hms 180
+assert [0,3,0.5], hms 180.5
 
 clone = (x) -> JSON.parse JSON.stringify x
 
