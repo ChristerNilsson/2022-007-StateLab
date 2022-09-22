@@ -39,11 +39,10 @@ createState = (key,klass) -> states[key] = new klass key
 
 pretty = (tot) ->
 	tot = Math.round tot
-	t = tot % 60
-	tot = (tot - t) / 60
-	s = tot % 60
-	tot = (tot - s) / 60
-	m = tot # % 60
+	t = tot %% 60
+	tot = tot // 60
+	s = tot %% 60
+	m = tot // 60
 	header = ''
 	if m > 0 then header += m + 'm'
 	if s > 0 then header += s + 's'
@@ -51,6 +50,7 @@ pretty = (tot) ->
 	header
 assert '1m1t', pretty 3601
 assert '2s3t', pretty 123
+assert '60m30s', pretty 60*60*60+30*60
 
 prettyPair = (a,b) ->
 	separator = if pretty(b) != '' then ' + ' else ''
@@ -67,9 +67,7 @@ mst = (x) -> # tertier
 	t = x %% 60
 	x = x // 60
 	s = x %% 60
-	x = x // 60
-	m = x
-	#if orig < 10 then s = Math.trunc(s*10)/10 
+	m = x // 60
 	[m,s,t] 
 assert [3,0,0], mst 3*60*60
 assert [3,0,30], mst 180*60+30
