@@ -1,6 +1,8 @@
 # TODO
 # Försämring av frameRate inträffar om man går från fullscreen till normal på Android
 
+# Istället för sekunder är nu normalformen tertier, 60-dels sekunder
+
 HCP = 1
 HOUR = 60*60*60
 MINUTE = 60*60
@@ -9,7 +11,7 @@ SEC = 60
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
 
-FRAMERATE = 30 # 10
+FRAMERATE = 60 # 10
 
 settings = {}
 backup = null
@@ -34,8 +36,6 @@ getLocalCoords = ->
 	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
 createState = (key,klass) -> states[key] = new klass key
-
-# Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
 pretty = (tot) ->
 	tot = Math.round tot
@@ -175,7 +175,7 @@ class CSettings
 		Object.assign @, backup
 		@paused = true
 
-class Button
+class Control
 	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
 		@visible = true
 		# @x = Math.round @x
@@ -193,19 +193,19 @@ class Button
 			pop()
 	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
 
-class BNumber extends Button
+class CNumber extends Control
 	constructor : (x,y) ->
 		super x,y,0,0
 		@x = Math.round @x
 		@y = Math.round @y
 	draw : ->
 		push()
-		textSize 4
+		textSize 8
 		fill 'white'
 		text settings.sums960.R,@x,@y
 		pop()
 
-class B960 extends Button
+class C960 extends Control
 	constructor : (x,y,w,h) ->
 		super x,y,w,h
 		@x = Math.round @x
@@ -221,20 +221,20 @@ class B960 extends Button
 			for i in range 8
 				image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
 
-class BRounded extends Button
+class CRounded extends Control
 	constructor : (x,y,w,h,text='',@disabled=false,bg='white',fg='black') ->
 		super x,y,w,h,text,bg,fg
 	draw : ->
 		if @visible
 			push()
-			fill if @disabled then "gray" else @bg
+			fill if @disabled then "black" else @bg
 			rect @x,@y,@w,@h,@h/2
 			textSize 4
-			fill @fg
+			fill if @disabled then "white" else @fg
 			text @text,@x,@y
 			pop()
 
-class BPause extends Button
+class CPause extends Control
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
 	draw : ->
@@ -243,7 +243,7 @@ class BPause extends Button
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
 
-class BCogwheel extends Button # Kugghjul
+class CCogwheel extends Control # Kugghjul
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
 	draw : ->
@@ -265,7 +265,7 @@ class BCogwheel extends Button # Kugghjul
 				pop()
 			pop()
 
-class BImage extends Button
+class CImage extends Control
 	constructor : (x,y,w,h,@image) ->
 		super x,y,w,h
 	draw :  ->
@@ -273,7 +273,7 @@ class BImage extends Button
 			w = @h * [height/width,width/height][TOGGLE]
 			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
 
-class BRotate extends Button
+class CRotate extends Control
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) ->
 		super x,y,w,h,'',bg,fg
 
@@ -295,7 +295,7 @@ class BRotate extends Button
 		rect 0,0,@w,@h
 		fill förgrund
 		textSize 18+9
-		text ss,0,2
+		text ss,0,-2
 		textSize 10
 		if tertier < 10*60 then text t,40,0
 
@@ -305,13 +305,13 @@ class BRotate extends Button
 
 		pop()
 
-class BAdv extends Button
+class CAdv extends Control
 	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
 	draw : ->
 		push()
 		translate @x,@y
-		fill if @name in settings.bits then 'yellow' else 'white'
+		fill if @name in settings.bits then 'yellow' else 'gray'
 		scale [height/width,width/height][TOGGLE],1
 		circle 0,0,7
 		fill 'black'
@@ -323,13 +323,13 @@ class BAdv extends Button
 		dy = y-@y
 		sqrt(dx*dx + dy*dy) < 5
 
-class BAdv960 extends Button
+class CAdv960 extends Control
 	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
 	draw : ->
 		push()
 		translate @x,@y
-		fill if @name in settings.bits960 then 'yellow' else 'white'
+		fill if @name in settings.bits960 then 'yellow' else 'gray'
 		scale [height/width,width/height][TOGGLE],1
 		circle 0,0,@w
 		fill 'black'
@@ -341,7 +341,7 @@ class BAdv960 extends Button
 		dy = y-@y
 		sqrt(dx*dx + dy*dy) < 5
 
-class BBasic extends BAdv
+class CBasic extends CAdv
 	constructor : (x,y,w,h,text) ->
 		super '',x,y,w,h,text
 	draw : ->
@@ -355,7 +355,7 @@ class BBasic extends BAdv
 		text @text,0,0.2
 		pop()
 
-class BDead extends Button
+class CDead extends Control
 	constructor : (x,y,text,fg='lightgray') ->
 		super x,y,0,0,text,'black',fg
 	draw : ->
@@ -365,14 +365,14 @@ class BDead extends Button
 		text @text,@x,@y
 		pop()
 		
-class BShow extends BDead
+class CShow extends CDead
 	constructor : (x,y,fg='lightgray') ->
 		super x,y,0,0,'','black',fg
 	draw : ->
 		@text = settings.show
 		super()
 
-class BColor extends Button
+class CColor extends Control
 	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
 		push()
@@ -423,12 +423,12 @@ class SClock extends State
 		settings.player = -1
 
 	makeButtons : ->
-		@buttons.left  = new BRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		@buttons.right = new BRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		@buttons.show  = new BShow     22, 50, 'black'
-		@buttons.qr    = new BImage    50, 50, 33, 12, qr
-		@buttons.pause = new BPause    67, 50, 17, 12, 'white', 'black'
-		@buttons.edit  = new BCogwheel 83, 50, 17, 12, 'white', 'black'
+		@buttons.left  = new CRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
+		@buttons.right = new CRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
+		@buttons.show  = new CShow     22, 50, 'black'
+		@buttons.qr    = new CImage    50, 50, 33, 12, qr
+		@buttons.pause = new CPause    67, 50, 17, 12, 'white', 'black'
+		@buttons.edit  = new CCogwheel 83, 50, 17, 12, 'white', 'black'
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -483,33 +483,33 @@ class SBasic extends State
 		@buttons.white      = states.SAdv.buttons.white
 		@buttons.green      = states.SAdv.buttons.green
 
-		@buttons.reflection = new BDead  x[0],20,'reflection'
-		@buttons.bonus      = new BDead  x[1],20,'bonus'
+		@buttons.reflection = new CDead  x[0],20,'reflection'
+		@buttons.bonus      = new CDead  x[1],20,'bonus'
 
-		@buttons.M          = new BDead  x[0], 25, 'minutes'
+		@buttons.M          = new CDead  x[0], 25, 'minutes'
 
-		@buttons.M1   			= new BBasic x[0],y[1], w,h, '1'
-		@buttons.M2   			= new BBasic x[0],y[2], w,h, '2'
-		@buttons.M3   			= new BBasic x[0],y[3], w,h, '3'
-		@buttons.M5   			= new BBasic x[0],y[4], w,h, '5'
-		@buttons.M10   			= new BBasic x[0],y[5], w,h, '10'
-		@buttons.M90   			= new BBasic x[0],y[6], w,h, '90'
+		@buttons.M1   			= new CBasic x[0],y[1], w,h, '1'
+		@buttons.M2   			= new CBasic x[0],y[2], w,h, '2'
+		@buttons.M3   			= new CBasic x[0],y[3], w,h, '3'
+		@buttons.M5   			= new CBasic x[0],y[4], w,h, '5'
+		@buttons.M10   			= new CBasic x[0],y[5], w,h, '10'
+		@buttons.M90   			= new CBasic x[0],y[6], w,h, '90'
 
-		@buttons.s          = new BDead  x[1], 25, 'seconds'
+		@buttons.s          = new CDead  x[1], 25, 'seconds'
 
-		@buttons.s0   			= new BBasic x[1],y[0], w,h, '0'
-		@buttons.s1   			= new BBasic x[1],y[1], w,h, '1'
-		@buttons.s2   			= new BBasic x[1],y[2], w,h, '2'
-		@buttons.s3   			= new BBasic x[1],y[3], w,h, '3'
-		@buttons.s5   			= new BBasic x[1],y[4], w,h, '5'
-		@buttons.s10   			= new BBasic x[1],y[5], w,h, '10'
-		@buttons.s30   			= new BBasic x[1],y[6], w,h, '30'
+		@buttons.s0   			= new CBasic x[1],y[0], w,h, '0'
+		@buttons.s1   			= new CBasic x[1],y[1], w,h, '1'
+		@buttons.s2   			= new CBasic x[1],y[2], w,h, '2'
+		@buttons.s3   			= new CBasic x[1],y[3], w,h, '3'
+		@buttons.s5   			= new CBasic x[1],y[4], w,h, '5'
+		@buttons.s10   			= new CBasic x[1],y[5], w,h, '10'
+		@buttons.s30   			= new CBasic x[1],y[6], w,h, '30'
 
-		@buttons.basic      = new BRounded 1*100/10,y[7], 18,6, 'basic',true
-		@buttons.adv        = new BRounded 3*100/10,y[7], 18,6, 'adv'
-		@buttons.b960       = new BRounded 5*100/10,y[7], 18,6, '960'
-		@buttons.cancel     = new BRounded 7*100/10,y[7], 18,6, 'cancel'
-		@buttons.ok         = new BRounded 9*100/10,y[7], 18,6, 'ok'
+		@buttons.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',true
+		@buttons.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
+		@buttons.b960       = new CRounded 5*100/10,y[7], 18,6, '960'
+		@buttons.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
+		@buttons.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
 
@@ -540,21 +540,21 @@ class SAdv extends State
 
 	makeButtons : ->
 
-		@buttons.orange     = new BColor 50, 2.5,'orange'
-		@buttons.white      = new BColor 50, 9.5,'white'
-		@buttons.green      = new BColor 50,16.5,'green'
+		@buttons.orange     = new CColor 50, 2.5,'orange'
+		@buttons.white      = new CColor 50, 9.5,'white'
+		@buttons.green      = new CColor 50,16.5,'green'
 
-		@buttons.reflection = new BDead  25,21,'reflection'
-		@buttons.bonus      = new BDead  50,21,'bonus'
-		@buttons.hcp        = new BDead  75,21,'handicap'
+		@buttons.reflection = new CDead  25,21,'reflection'
+		@buttons.bonus      = new CDead  50,21,'bonus'
+		@buttons.hcp        = new CDead  75,21,'handicap'
 
 		y = 95
 
-		@buttons.basic      = new BRounded 1*100/10,y, 18,6, 'basic'
-		@buttons.adv        = new BRounded 3*100/10,y, 18,6, 'adv', true
-		@buttons.b960       = new BRounded 5*100/10,y, 18,6, '960'
-		@buttons.cancel     = new BRounded 7*100/10,y, 18,6, 'cancel'
-		@buttons.ok         = new BRounded 9*100/10,y, 18,6, 'ok'
+		@buttons.basic      = new CRounded 1*100/10,y, 18,6, 'basic'
+		@buttons.adv        = new CRounded 3*100/10,y, 18,6, 'adv', true
+		@buttons.b960       = new CRounded 5*100/10,y, 18,6, '960'
+		@buttons.cancel     = new CRounded 7*100/10,y, 18,6, 'cancel'
+		@buttons.ok         = new CRounded 9*100/10,y, 18,6, 'ok'
 
 		@makeEditButtons()
 
@@ -565,12 +565,12 @@ class SAdv extends State
 			ysize = 100/12
 			xoff = xsize
 			yoff = 33+2
-			@buttons[letter] = new BDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
+			@buttons[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
 			for j in range 7
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@buttons[name] = new BAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
+					@buttons[name] = new CAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
 
 	message : (key) ->
 		if key == 'basic'
@@ -601,7 +601,7 @@ class SAdv extends State
 class S960 extends State
 	constructor : (name) ->
 		super name
-		arr = '=> B960 BNumber =>SClock cancel ok =>SAdv adv =>SBasic basic =>S960 b960 random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'.split ' '
+		arr = '=> C960 CNumber =>SClock cancel ok =>SAdv adv =>SBasic basic =>S960 b960 random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'.split ' '
 		@createTrans arr.join ' '
 		@makeButtons()
 
@@ -612,29 +612,29 @@ class S960 extends State
 		w = 11
 		h = 10
 
-		@buttons.B960   		= new B960    50,y[0], 100, 10
-		@buttons.BNumber    = new BNumber 50,20
+		@buttons.C960   		= new C960    50,y[0], 100, 10
+		@buttons.CNumber    = new CNumber 50,25
 
-		@buttons.R1   			= new BAdv960 'R1', x[0],y[1], w,h, '1'
-		@buttons.R2   			= new BAdv960 'R2', x[0],y[2], w,h, '2'
-		@buttons.R4   			= new BAdv960 'R4', x[0],y[3], w,h, '4'
-		@buttons.R8   			= new BAdv960 'R8', x[0],y[4], w,h, '8'
+		@buttons.R1   			= new CAdv960 'R1', x[0],y[1], w,h, '1'
+		@buttons.R2   			= new CAdv960 'R2', x[0],y[2], w,h, '2'
+		@buttons.R4   			= new CAdv960 'R4', x[0],y[3], w,h, '4'
+		@buttons.R8   			= new CAdv960 'R8', x[0],y[4], w,h, '8'
 		
-		@buttons.R15   			= new BAdv960 'R15',x[1],y[1], w,h, '15'
-		@buttons.R30   			= new BAdv960 'R30',x[1],y[2], w,h, '30'
-		@buttons.R60   			= new BAdv960 'R60',x[1],y[3], w,h, '60'
+		@buttons.R15   			= new CAdv960 'R15',x[1],y[1], w,h, '15'
+		@buttons.R30   			= new CAdv960 'R30',x[1],y[2], w,h, '30'
+		@buttons.R60   			= new CAdv960 'R60',x[1],y[3], w,h, '60'
 
-		@buttons.R120  			= new BAdv960 'R120',x[2],y[1], w,h, '120'
-		@buttons.R240 			= new BAdv960 'R240',x[2],y[2], w,h, '240'
-		@buttons.R480  			= new BAdv960 'R480',x[2],y[3], w,h, '480'
+		@buttons.R120  			= new CAdv960 'R120',x[2],y[1], w,h, '120'
+		@buttons.R240 			= new CAdv960 'R240',x[2],y[2], w,h, '240'
+		@buttons.R480  			= new CAdv960 'R480',x[2],y[3], w,h, '480'
 
-		@buttons.random     = new BRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
+		@buttons.random     = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
 
-		@buttons.basic      = new BRounded 1*100/10,y[7], 18,6, 'basic'
-		@buttons.adv        = new BRounded 3*100/10,y[7], 18,6, 'adv'
-		@buttons.b960       = new BRounded 5*100/10,y[7], 18,6, '960',true
-		@buttons.cancel     = new BRounded 7*100/10,y[7], 18,6, 'cancel'
-		@buttons.ok         = new BRounded 9*100/10,y[7], 18,6, 'ok'
+		@buttons.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic'
+		@buttons.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
+		@buttons.b960       = new CRounded 5*100/10,y[7], 18,6, '960',true
+		@buttons.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
+		@buttons.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
 		if key == 'adv'
@@ -645,7 +645,7 @@ class S960 extends State
 		else if key[0] == 'R'
 			settings.flip960 key # 10 buttons
 			console.log settings.number
-			@buttons.B960.visible = settings.number < 960
+			@buttons.C960.visible = settings.number < 960
 		else if key == 'random' 
 			nr = _.random 0,959
 			settings.number = nr
@@ -654,7 +654,7 @@ class S960 extends State
 				if nr >= value
 					nr -= value
 					settings.flip960 'R' + value
-			@buttons.B960.visible = settings.number < 960
+			@buttons.C960.visible = settings.number < 960
 		super key
 
 ###################################
@@ -744,8 +744,11 @@ indicator = ->
 	a = settings.clocks[0]
 	b = settings.clocks[1]
 	andel = 100 * a/(a+b)
-	line  0,andel, 10,andel
-	line 90,andel,100,andel
+	push()
+	strokeWeight 1
+	line  1,andel, 10,andel
+	line 90,andel, 99,andel
+	pop()
 
 debugFunction = ->
 	# rates.push frameRate()
