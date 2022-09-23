@@ -102,6 +102,10 @@ class CSettings
 			c = 0
 			@timeout = true
 			@paused = true
+			if @player == 0 
+				currState.buttons.left.bg = 'red'
+			else
+				currState.buttons.right.bg = 'red'
 		@clocks[@player] = c
 
 	save : ->
@@ -160,6 +164,8 @@ class CSettings
 		@bonuses = [@players[0][1], @players[1][1]]
 		@timeout = false
 		@paused = true
+		states.SClock.buttons.left.bg = 'black'
+		states.SClock.buttons.right.bg = 'black'
 
 	cancel : -> 
 		Object.assign @, backup
@@ -280,14 +286,25 @@ class CRotate extends Control
 		translate @x,@y
 		rotate @degrees
 
-		bakgrund = if settings.timeout and settings.player == @player then 'red' else @bg
-		förgrund = if settings.timeout and settings.player == @player then 'black' else @fg
+		minCol = if settings.player == @player then 'red' else 'grey'
+		secCol = if settings.player == @player then 'white' else 'lightgrey'
 
-		fill bakgrund
-		rect 0,0,@w,@h
-		fill förgrund
+		if settings.timeout
+			minCol = if settings.player == @player then 'red' else 'grey'
+			secCol = if settings.player == @player then 'white' else 'lightgrey'
+
 		textSize 18+9
-		text ss,0,-2
+		mw = textWidth m
+		sw = textWidth d2 2
+		fill @bg
+		rect 0,0,@w,@h
+
+		fill minCol
+		text m, -sw/2, -2
+
+		fill secCol
+		text d2(s), mw/2, -2
+
 		textSize 10
 		if tertier < 10*60 then text t,40,0
 
@@ -321,7 +338,7 @@ class CAdv extends Control
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
 
 class CDead extends Control
-	constructor : (x,y,text,fg='lightgray') ->
+	constructor : (x,y,text,fg='white') ->
 		super x,y,0,0,text,'black',fg
 	draw : ->
 		push()
@@ -331,12 +348,18 @@ class CDead extends Control
 		pop()
 		
 class CShow extends CDead
-	constructor : (x,y,fg='lightgray') ->
-		super x,y,0,0,'','black',fg
+	constructor : (x,y,fg='white') ->
+		super x,y,'',fg
 	draw : ->
+		push()
+		translate @x,@y
+		rotate -90
 		@text = settings.show
-		super()
-
+		fill 'white'
+		textSize 5
+		text settings.show, 0,0
+		#super()
+		pop()
 class CColor extends Control
 	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
@@ -373,11 +396,9 @@ class State
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
 		for key of @transitions
-			console.log key,@transitions
 			if @transitions[key] == undefined then continue
 			button = @buttons[key]
 			if key not of @buttons then continue
-			console.log 'button',button
 			if button.inside(x, y) and button.visible
 				@message key
 				break
@@ -391,12 +412,12 @@ class SClock extends State
 		settings.player = -1
 
 	makeButtons : ->
-		@buttons.left  = new CRotate 50, 22, 100, 44, 180, 'orange', 'white', 0 # eg up
-		@buttons.right = new CRotate 50, 78, 100, 44,   0, 'green',  'white', 1 # eg down
-		@buttons.show  = new CShow     22, 50, 'black'
+		@buttons.left  = new CRotate 50, 22, 100, 44, 180, 'black', 'white', 0 # eg up
+		@buttons.right = new CRotate 50, 78, 100, 44,   0, 'black',  'white', 1 # eg down
+		@buttons.show  = new CShow     22, 50, 'white'
 		@buttons.qr    = new CImage    50, 50, 33, 12, qr
-		@buttons.pause = new CPause    67, 50, 17, 12, 'white', 'black'
-		@buttons.edit  = new CCogwheel 83, 50, 17, 12, 'white', 'black'
+		@buttons.pause = new CPause    67, 50, 17, 12, 'black', 'white'
+		@buttons.edit  = new CCogwheel 83, 50, 17, 12, 'black', 'white'
 
 	handlePlayer : (player) ->
 		if settings.player in [-1,player]
@@ -436,13 +457,13 @@ class SClock extends State
 		andel = 100 * a/(a+b)
 		push()
 		strokeWeight 1
-		stroke 'black'
+		stroke 'white'
 		line  1,andel, 10,andel
 		line 90,andel, 99,andel
 		pop()
 
 	draw : ->
-		background 'white'
+		background 'black'
 		super()
 		@indicator()
 
@@ -501,7 +522,6 @@ class SBasic extends State
 			st = settings
 			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] != 'M'
 			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] != 's'
-			console.log 'filter',st.bits
 			states.SAdv.message key
 			@buttons.ok.visible = st.sums.M > 0 and st.sums.t < 60
 
@@ -624,7 +644,6 @@ class S960 extends State
 		else if key == 'ok' then settings.ok()
 		else if key[0] == 'R'
 			settings.flip960 key # 10 buttons
-			console.log settings.number
 			@buttons.C960.visible = settings.number < 960
 		else if key == 'random' 
 			nr = _.random 0,959
@@ -718,7 +737,6 @@ draw = ->
 	aspect = (w,h,y) ->
 		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
-
 
 debugFunction = ->
 	# rates.push frameRate()
