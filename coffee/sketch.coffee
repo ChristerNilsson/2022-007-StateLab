@@ -146,7 +146,7 @@ class CSettings
 		if @sums.s > 0 then header1 += @sums.s
 		header = header0
 		if header1.length > 0 then header += '+' + header1
-		if @sums.t > 0 then header += '\n' + @sums.t
+		if @sums.t > 0 then header += "\n(#{@sums.t})"
 		header
 
 	handicap : ->
@@ -300,7 +300,7 @@ class CRotate extends Control
 		textSize 10
 		if tertier < 10*60 then text t,36,-4
 
-		if settings.bonuses[@player] > 0
+		if settings.sums.t > 0 and settings.bonuses[@player] > 0
 			textSize 8
 			text '+' + pretty(settings.bonuses[@player]),0,17
 
