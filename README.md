@@ -69,6 +69,14 @@ Clicking <img src="pause.PNG" width="25"> will display the <img src="cogwheel.PN
 
 ![Handicap Clock](Clock3.PNG)
 
+### How to use ratings to set handicap
+
+* Divide the difference by a number, e.g. 20
+	* Difference=0 => handicap 0
+	* Difference=160 => handicap 8
+	* Difference=200 => handicap 10
+	* Difference=1200 => handicap 59 (maximum)
+
 ### How to find a handicap between two persons
 1. Start with handicap 0
 1. Play a game with your friend until someone wins
