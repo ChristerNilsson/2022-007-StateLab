@@ -188,7 +188,9 @@ class Control
 			fill @fg
 			text @text,@x,@y
 			pop()
-	inside : (x,y) -> -@w/2 <= x-@x <= @w/2 and -@h/2 <= y-@y <= @h/2
+	inside : (x,y) ->
+		w = @w * [height/width,width/height][1-TOGGLE]
+		-w/2 <= x-@x <= w/2 and -@h/2 <= y-@y <= @h/2
 
 class CNumber extends Control
 	constructor : (x,y) ->
@@ -199,7 +201,7 @@ class CNumber extends Control
 		push()
 		textSize 8
 		fill 'white'
-		text settings.sums960.R,@x,@y
+		text settings.number,@x,@y
 		pop()
 
 class C960 extends Control
@@ -316,9 +318,14 @@ class CAdv extends Control
 		text @text,0,0.2
 		pop()
 	inside : (x,y) ->
-		dx = x-@x
-		dy = y-@y
-		sqrt(dx*dx + dy*dy) < 5
+		w = @w * [height/width,width/height][TOGGLE] # 4
+		h = @h * [height/width,width/height][TOGGLE] # 2
+		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
+
+	# inside : (x,y) ->
+	# 	dx = x-@x
+	# 	dy = y-@y
+	# 	sqrt(dx*dx + dy*dy) < 5
 
 class CAdv960 extends Control
 	constructor : (@name,x,y,w,h,text) ->
@@ -333,10 +340,16 @@ class CAdv960 extends Control
 		textSize 5
 		text @text,0,0.2
 		pop()
+
 	inside : (x,y) ->
-		dx = x-@x
-		dy = y-@y
-		sqrt(dx*dx + dy*dy) < 5
+		w = @w * [height/width,width/height][TOGGLE] # 4
+		h = @h #* [height/width,width/height][TOGGLE] # 2
+		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
+
+	# inside : (x,y) ->
+	# 	dx = x-@x
+	# 	dy = y-@y
+	# 	sqrt(dx*dx + dy*dy) < 5
 
 class CBasic extends CAdv
 	constructor : (x,y,w,h,text) ->
