@@ -307,29 +307,38 @@ class CRotate extends Control
 class CAdv extends Control
 	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
+		@visible = true
+
 	draw : ->
 		push()
 		translate @x,@y
 		fill if @name in settings.bits then 'yellow' else 'gray'
 		scale [height/width,width/height][TOGGLE],1
-		circle 0,0,7
+		ellipse 0,0,7*height/width,7*height/width
 		fill 'black'
 		textSize 5
 		text @text,0,0.2
 		pop()
+
 	inside : (x,y) ->
-		w = @w * [height/width,width/height][TOGGLE] # 4
-		h = @h * [height/width,width/height][TOGGLE] # 2
+		console.log os,width,height,width/height,height/width
+		if os == 'Windows'
+			w = @w*0.4 #* [height/width,width/height][1-TOGGLE] # 4
+			h = @h*0.9 #* [height/width,width/height][TOGGLE] # 2
+		if os == 'Mac'
+			w = @w #* [height/width,width/height][1-TOGGLE] # 4
+			h = @h #* [height/width,width/height][TOGGLE] # 2
+		if os == 'Android'
+			w = @w #* [height/width,width/height][1-TOGGLE] # 4
+			h = @h #* [height/width,width/height][TOGGLE] # 2
+
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
 
-	# inside : (x,y) ->
-	# 	dx = x-@x
-	# 	dy = y-@y
-	# 	sqrt(dx*dx + dy*dy) < 5
 
 class CAdv960 extends Control
 	constructor : (@name,x,y,w,h,text) ->
 		super x,y,w,h,text,'black'
+		@visible = true
 	draw : ->
 		push()
 		translate @x,@y
@@ -342,8 +351,8 @@ class CAdv960 extends Control
 		pop()
 
 	inside : (x,y) ->
-		w = @w * [height/width,width/height][TOGGLE] # 4
-		h = @h #* [height/width,width/height][TOGGLE] # 2
+		w = @w * [height/width,width/height][1-TOGGLE] # 4
+		h = @h * [height/width,width/height][1-TOGGLE] # 2
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
 
 	# inside : (x,y) ->
@@ -418,9 +427,12 @@ class State
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
 		for key of @transitions
+			console.log key,@transitions
 			if @transitions[key] == undefined then continue
 			button = @buttons[key]
-			if button.visible and button.inside x, y
+			if key not of @buttons then continue
+			console.log 'button',button
+			if button.inside(x, y) and button.visible
 				@message key
 				break
 
