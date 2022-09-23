@@ -75,21 +75,18 @@ clone = (x) -> JSON.parse JSON.stringify x
 
 class CSettings
 	constructor : -> 
-		if localStorage.settings
-			Object.assign @, JSON.parse localStorage.settings
-			console.log "load"
-		else
-			console.log "default"
+		console.log if localStorage.settings then "load" else "default"
+		if localStorage.settings then Object.assign @, JSON.parse localStorage.settings
 
 		@bits960 ||= ['R480','R30','R8']
-		@number ||= 518
+		@number ||= 518 # normal chess
 		@chess960 ||= 'RNBQKBNR'
 
 		@show ||= '3 + 2'
 		@bits ||= ['M1','M2','s2']
 		@clocks ||= [180*60,180*60] # tertier
 		@bonuses ||= [2*60,2*60]    # tertier
-		@sums ||= [M:3,s:2,t:0]
+		@sums ||= {M:3,s:2,t:0}
 		@player ||= -1 
 		@timeout ||= false
 		@paused = true
@@ -301,8 +298,8 @@ class CRotate extends Control
 		pop()
 
 class CAdv extends Control
-	constructor : (@key,@name,x,y,w,h,text) ->
-		super x,y,w,h,text,'black'
+	constructor : (@key,@name,x,y,diam,text) ->
+		super x,y,diam,diam,text,'black'
 		@visible = true
 
 	draw : ->
@@ -322,20 +319,6 @@ class CAdv extends Control
 		w = @w * s
 		h = @h
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
-
-# class CBasic extends CAdv
-# 	constructor : (key,x,y,w,h,text) ->
-# 		super key,'',x,y,w,h,text
-# 	draw : ->
-# 		push()
-# 		translate @x,@y
-# 		fill 'white'
-# 		scale [height/width,width/height][TOGGLE],1
-# 		circle 0,0,@w
-# 		fill 'black'
-# 		textSize 5
-# 		text @text,0,0.2
-# 		pop()
 
 class CDead extends Control
 	constructor : (x,y,text,fg='lightgray') ->
@@ -473,8 +456,7 @@ class SBasic extends State
 
 		x = [100/3,200/3]
 		y = [32,41,50,59,68,77,86,95]
-		w = 8
-		h = 6
+		diam = 8
 
 		@buttons.orange     = states.SAdv.buttons.orange
 		@buttons.white      = states.SAdv.buttons.white
@@ -485,22 +467,22 @@ class SBasic extends State
 
 		@buttons.M          = new CDead  x[0], 25, 'minutes'
 
-		@buttons.M1   			= new CAdv 'bits', '',x[0],y[1], w,h, '1'
-		@buttons.M2   			= new CAdv 'bits', '',x[0],y[2], w,h, '2'
-		@buttons.M3   			= new CAdv 'bits', '',x[0],y[3], w,h, '3'
-		@buttons.M5   			= new CAdv 'bits', '',x[0],y[4], w,h, '5'
-		@buttons.M10   			= new CAdv 'bits', '',x[0],y[5], w,h, '10'
-		@buttons.M90   			= new CAdv 'bits', '',x[0],y[6], w,h, '90'
+		@buttons.M1   			= new CAdv 'bits', '',x[0],y[1], diam, '1'
+		@buttons.M2   			= new CAdv 'bits', '',x[0],y[2], diam, '2'
+		@buttons.M3   			= new CAdv 'bits', '',x[0],y[3], diam, '3'
+		@buttons.M5   			= new CAdv 'bits', '',x[0],y[4], diam, '5'
+		@buttons.M10   			= new CAdv 'bits', '',x[0],y[5], diam, '10'
+		@buttons.M90   			= new CAdv 'bits', '',x[0],y[6], diam, '90'
 
 		@buttons.s          = new CDead  x[1], 25, 'seconds'
 
-		@buttons.s0   			= new CAdv 'bits', '',x[1],y[0], w,h, '0'
-		@buttons.s1   			= new CAdv 'bits', '',x[1],y[1], w,h, '1'
-		@buttons.s2   			= new CAdv 'bits', '',x[1],y[2], w,h, '2'
-		@buttons.s3   			= new CAdv 'bits', '',x[1],y[3], w,h, '3'
-		@buttons.s5   			= new CAdv 'bits', '',x[1],y[4], w,h, '5'
-		@buttons.s10   			= new CAdv 'bits', '',x[1],y[5], w,h, '10'
-		@buttons.s30   			= new CAdv 'bits', '',x[1],y[6], w,h, '30'
+		@buttons.s0   			= new CAdv 'bits', '',x[1],y[0], diam, '0'
+		@buttons.s1   			= new CAdv 'bits', '',x[1],y[1], diam, '1'
+		@buttons.s2   			= new CAdv 'bits', '',x[1],y[2], diam, '2'
+		@buttons.s3   			= new CAdv 'bits', '',x[1],y[3], diam, '3'
+		@buttons.s5   			= new CAdv 'bits', '',x[1],y[4], diam, '5'
+		@buttons.s10   			= new CAdv 'bits', '',x[1],y[5], diam, '10'
+		@buttons.s30   			= new CAdv 'bits', '',x[1],y[6], diam, '30'
 
 		@buttons.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',true
 		@buttons.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
@@ -512,7 +494,7 @@ class SBasic extends State
 
 		if key == 'adv'
 		else if key == 'basic'
-		#else if key == 's960'
+		else if key == 'b960'
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else # 6+7 shortcut buttons
@@ -562,16 +544,18 @@ class SAdv extends State
 			ysize = 100/12
 			xoff = xsize
 			yoff = 33+2
+			diam = 7
 			@buttons[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
 			for j in range 7
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@buttons[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, 7, 7, number
+					@buttons[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, diam, number
 
 	message : (key) ->
 		if key == 'basic'
 		else if key == 'advanced'
+		else if key == 'b960'
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else
@@ -606,24 +590,23 @@ class S960 extends State
 
 		x = [100/4,200/4,300/4]
 		y = [-5,40,52,64,76,78,90,95]
-		w = 11
-		h = 10
+		diam = 10
 
 		@buttons.C960   		= new C960    50,y[0], 100, 10
 		@buttons.CNumber    = new CNumber 50,25
 
-		@buttons.R1   			= new CAdv 'bits960','R1', x[0],y[1], w,h, '1'
-		@buttons.R2   			= new CAdv 'bits960','R2', x[0],y[2], w,h, '2'
-		@buttons.R4   			= new CAdv 'bits960','R4', x[0],y[3], w,h, '4'
-		@buttons.R8   			= new CAdv 'bits960','R8', x[0],y[4], w,h, '8'
+		@buttons.R1   			= new CAdv 'bits960','R1', x[0],y[1], diam, '1'
+		@buttons.R2   			= new CAdv 'bits960','R2', x[0],y[2], diam, '2'
+		@buttons.R4   			= new CAdv 'bits960','R4', x[0],y[3], diam, '4'
+		@buttons.R8   			= new CAdv 'bits960','R8', x[0],y[4], diam, '8'
 		
-		@buttons.R15   			= new CAdv 'bits960','R15',x[1],y[1], w,h, '15'
-		@buttons.R30   			= new CAdv 'bits960','R30',x[1],y[2], w,h, '30'
-		@buttons.R60   			= new CAdv 'bits960','R60',x[1],y[3], w,h, '60'
+		@buttons.R15   			= new CAdv 'bits960','R15',x[1],y[1], diam, '15'
+		@buttons.R30   			= new CAdv 'bits960','R30',x[1],y[2], diam, '30'
+		@buttons.R60   			= new CAdv 'bits960','R60',x[1],y[3], diam, '60'
 
-		@buttons.R120  			= new CAdv 'bits960','R120',x[2],y[1], w,h, '120'
-		@buttons.R240 			= new CAdv 'bits960','R240',x[2],y[2], w,h, '240'
-		@buttons.R480  			= new CAdv 'bits960','R480',x[2],y[3], w,h, '480'
+		@buttons.R120  			= new CAdv 'bits960','R120',x[2],y[1], diam, '120'
+		@buttons.R240 			= new CAdv 'bits960','R240',x[2],y[2], diam, '240'
+		@buttons.R480  			= new CAdv 'bits960','R480',x[2],y[3], diam, '480'
 
 		@buttons.random     = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
 
