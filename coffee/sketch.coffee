@@ -372,10 +372,7 @@ class State
 			if ':' == _.last word then target = word.slice 0,word.length-1
 			else @transitions[word] = target
 
-	message : (key) ->
-		console.log "clicked #{@name}.#{key} => #{@transitions[key]}"
-		currState = states[@transitions[key]]
-
+	message : (key) -> console.log "Message #{@name}.#{key} not handled!"
 	draw : -> @controls[key].draw() for key of @controls
 
 	mouseClicked : ->
@@ -383,7 +380,9 @@ class State
 		for key of @controls
 			control = @controls[key]
 			if control.visible and not control.disabled and control.inside x, y
-				@message key
+				console.log 'mouseClicked',key,@transitions[key]
+				currState = states[@transitions[key]]
+				currState.message key
 				break
 
 class SClock extends State
@@ -403,36 +402,31 @@ class SClock extends State
 		@controls.show  = new CShow     22, 50, 'white'
 
 	handlePlayer : (player) ->
-		sound.play()
-		if settings.player in [player]
+		if settings.paused 
+			sound.play()
+		else if settings.player == -1
+			sound.play()
+		else if settings.player == player
+			sound.play()
 			settings.clocks[player] += settings.bonuses[player]
 		settings.paused = false
 		settings.player = 1-player
-		@controls.left.fg  = ['black','white'][player]
-		@controls.right.fg = ['white','black'][player]
 
 	message : (key) ->
+
 		if key == 'left'
 			if settings.timeout then return else @handlePlayer 0
-
 		else if key == 'right'
 			if settings.timeout then return else @handlePlayer 1
-
 		else if key == 'pause'
 			settings.paused = true
-			@controls.left.fg = if settings.player == 0 then 'white' else 'black'
-			@controls.right.fg = if settings.player == 0 then 'black' else 'white'
-
 		else if key == 'qr'
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
-
-		else if key == 'edit'
-			backup = clone settings # to be used by cancel
-			console.log 'backup skapad',backup
-
+		else if key == 'cancel' then settings.cancel()
+		else if key == 'ok' then settings.ok()
+		else super key
 		settings.save()
-		super key
 
 	indicator : ->
 		a = settings.clocks[0]
@@ -484,20 +478,18 @@ class SBasic extends State
 		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
-
-		if key == 'adv'
-		else if key == 'basic'
-		else if key == 'b960'
-		else if key == 'cancel' then settings.cancel()
-		else if key == 'ok' then settings.ok()
-		else # 6+7 shortcut controls
-			st = settings
-			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] != 'M'
-			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] != 's'
+		st = settings
+		if key in ['edit','basic']
+			backup = clone settings # to be used by cancel
+			console.log 'backup skapad',backup
+		else if key[0]=='M'
+			st.bits = st.bits.filter (value) -> value[0] != 'M'
 			states.SAdv.message key
 			@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
-
-		super key
+		else if key[0]=='s'
+			st.bits = st.bits.filter (value) -> value[0] != 's'
+			states.SAdv.message key
+		else super key
 
 class SAdv extends State
 	constructor : (name) ->
@@ -541,23 +533,18 @@ class SAdv extends State
 					@controls[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, diam, number
 
 	message : (key) ->
-		if key == 'basic'
-		else if key == 'advanced'
-		else if key == 'b960'
-		else if key == 'cancel' then settings.cancel()
-		else if key == 'ok' then settings.ok()
-		else
-			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
-			if key of hash
-				for msg in hash[key].split ' '
-					if msg != '' then @message msg
-			else # 3 x 7 edit controls
-				st = settings
-				st.flip key
-				@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
+		hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
+		if key == 'adv'
+		else if key of hash
+			for msg in hash[key].split ' '
+				if msg != '' then @message msg
+		else if key[0] in 'Mst'
+			st = settings
+			st.flip key
+			@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
+		else super key
 
 		@uppdatera()
-		super key
 		
 	uppdatera : ->
 		@controls.white.text = settings.show
@@ -598,11 +585,7 @@ class S960 extends State
 		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
-		if key == 'adv'
-		else if key == 'basic'
-		else if key == 'b960'
-		else if key == 'cancel' then settings.cancel()
-		else if key == 'ok' then settings.ok()
+		if key == 'b960'
 		else if key[0] == 'R'
 			settings.flip960 key # 10 controls
 			@controls.C960.visible = settings.number < 960
@@ -615,7 +598,7 @@ class S960 extends State
 					nr -= value
 					settings.flip960 'R' + value
 			@controls.C960.visible = settings.number < 960
-		super key
+		else super key
 
 ###################################
 
