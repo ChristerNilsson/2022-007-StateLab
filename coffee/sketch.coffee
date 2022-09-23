@@ -3,10 +3,9 @@
 
 # Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
-HCP = 1
-HOUR = 60*60*60
-MINUTE = 60*60
-SEC = 60
+HOUR = 60*60*60 # tertier
+MINUTE = 60*60  # tertier
+SEC = 60        # tertier
 
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
@@ -85,12 +84,12 @@ class CSettings
 		@bits960 ||= ['R480','R30','R8']
 		@number ||= 518
 		@chess960 ||= 'RNBQKBNR'
-		@sums960 ||= {R:518}
+		#@sums960 ||= {R:518}
 
 		@show ||= '3 + 2'
 		@bits ||= ['M1','M2','s2']
-		@clocks ||= [180*60,180*60]
-		@bonuses ||= [2*60,2*60]
+		@clocks ||= [180*60,180*60] # tertier
+		@bonuses ||= [2*60,2*60]    # tertier
 		@sums ||= [M:3,s:2,t:0]
 		@player ||= -1 
 		@timeout ||= false
@@ -123,8 +122,8 @@ class CSettings
 
 	flip960 : (key) ->
 		if key in @bits960 then _.remove @bits960, (n) -> n == key else @bits960.push key
-		@sums960 = @calcSums960()
-		@number = @sums960.R
+		@number = @calcSum960()
+		#@number = @sums960.R
 		@chess960 = chess960 @number
 
 	calcSums : ->
@@ -135,12 +134,12 @@ class CSettings
 			res[letter] += number
 		res
 
-	calcSums960 : ->
-		res = {R:0}
+	calcSum960 : ->
+		res = 0
 		for key in settings.bits960
-			letter = key[0]
-			number = parseInt key.slice 1
-			res[letter] += number
+			#letter = key[0]
+			res += parseInt key.slice 1
+			#res += number
 		res
 
 	compact : ->
@@ -154,12 +153,12 @@ class CSettings
 		header
 
 	handicap : ->
-		@hcp = @sums.t / (HCP * 60) # 0.0 .. 1.0
-		@refl  = MINUTE * @sums.M # tertier
-		@bonus =    SEC * @sums.s # tertier
+		hcp = @sums.t / 60 # 0.0 .. 1.0
+		refl  = MINUTE * @sums.M # tertier
+		bonus =    SEC * @sums.s # tertier
 		@players = []
-		@players[0] = [@refl + @refl*@hcp, @bonus + @bonus*@hcp]
-		@players[1] = [@refl - @refl*@hcp, @bonus - @bonus*@hcp]
+		@players[0] = [refl + refl*hcp, bonus + bonus*hcp]
+		@players[1] = [refl - refl*hcp, bonus - bonus*hcp]
 
 	ok : ->
 		@sums = @calcSums()
@@ -460,9 +459,21 @@ class SClock extends State
 		settings.save()
 		super key
 
+	indicator : ->
+		a = settings.clocks[0]
+		b = settings.clocks[1]
+		andel = 100 * a/(a+b)
+		push()
+		strokeWeight 1
+		stroke 'black'
+		line  1,andel, 10,andel
+		line 90,andel, 99,andel
+		pop()
+
 	draw : ->
 		background 'white'
 		super()
+		@indicator()
 
 class SBasic extends State
 	constructor : (name) ->
@@ -593,8 +604,8 @@ class SAdv extends State
 		
 		settings.handicap()
 		sp = settings.players
-		@buttons.orange.text = if settings.hcp == 0 then '' else prettyPair sp[0][0], sp[0][1]
-		@buttons.green.text  = if settings.hcp == 0 then '' else prettyPair sp[1][0], sp[1][1]
+		@buttons.orange.text = if settings.sums.t == 0 then '' else prettyPair sp[0][0], sp[0][1]
+		@buttons.green.text  = if settings.sums.t == 0 then '' else prettyPair sp[1][0], sp[1][1]
 
 class S960 extends State
 	constructor : (name) ->
@@ -711,7 +722,8 @@ dump = -> # log everything
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,button
 
-mouseClicked = -> currState.mouseClicked()
+mousePressed = -> if os == 'Windows' then currState.mouseClicked()
+touchStarted = -> if os != 'Windows' then currState.mouseClicked()
 
 draw = ->
 
@@ -736,17 +748,6 @@ draw = ->
 		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	indicator()
-
-indicator = ->
-	a = settings.clocks[0]
-	b = settings.clocks[1]
-	andel = 100 * a/(a+b)
-	push()
-	strokeWeight 1
-	line  1,andel, 10,andel
-	line 90,andel, 99,andel
-	pop()
 
 debugFunction = ->
 	# rates.push frameRate()
