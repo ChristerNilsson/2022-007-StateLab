@@ -3,9 +3,9 @@
 
 # Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
-HOUR = 60*60*60 # tertier
-MINUTE = 60*60  # tertier
-SEC = 60        # tertier
+HOUR   = 60*60*60 # tertier
+MINUTE = 60*60    # tertier
+SEC    = 60       # tertier
 
 TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
 HEARTBEAT = 1000 # ms updates of localStorage
@@ -103,9 +103,9 @@ class CSettings
 			@timeout = true
 			@paused = true
 			if @player == 0 
-				currState.buttons.left.bg = 'red'
+				currState.controls.left.bg = 'red'
 			else
-				currState.buttons.right.bg = 'red'
+				currState.controls.right.bg = 'red'
 		@clocks[@player] = c
 
 	save : ->
@@ -165,8 +165,8 @@ class CSettings
 		@timeout = false
 		@paused = true
 		@player = -1
-		states.SClock.buttons.left.bg = 'black'
-		states.SClock.buttons.right.bg = 'black'
+		states.SClock.controls.left.bg = 'black'
+		states.SClock.controls.right.bg = 'black'
 
 	cancel : -> 
 		Object.assign @, backup
@@ -191,7 +191,6 @@ class Control
 	inside : (x,y) ->
 		w = @w * [height/width,width/height][1-TOGGLE]
 		-w/2 <= x-@x <= w/2 and -@h/2 <= y-@y <= @h/2
-
 class CNumber extends Control
 	constructor : (x,y) ->
 		super x,y,0,0
@@ -203,7 +202,6 @@ class CNumber extends Control
 		fill 'white'
 		text settings.number,@x,@y
 		pop()
-
 class C960 extends Control
 	constructor : (x,y,w,h) ->
 		super x,y,w,h
@@ -219,7 +217,6 @@ class C960 extends Control
 			xoff = @x + (dx-w)/2
 			for i in range 8
 				image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
-
 class CRounded extends Control
 	constructor : (x,y,w,h,text='',@disabled=false,bg='white',fg='black') ->
 		super x,y,w,h,text,bg,fg
@@ -232,7 +229,6 @@ class CRounded extends Control
 			fill if @disabled then "white" else @fg
 			text @text,@x,@y
 			pop()
-
 class CPause extends Control
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
@@ -241,7 +237,6 @@ class CPause extends Control
 			fill @fg
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
-
 class CCogwheel extends Control # Kugghjul
 	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
 		super x,y,w,h
@@ -263,7 +258,6 @@ class CCogwheel extends Control # Kugghjul
 				rect 0,0,1,1
 				pop()
 			pop()
-
 class CImage extends Control
 	constructor : (x,y,w,h,@image) ->
 		super x,y,w,h
@@ -271,7 +265,6 @@ class CImage extends Control
 		if @image
 			w = @h * [height/width,width/height][TOGGLE]
 			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
-
 class CRotate extends Control
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) ->
 		super x,y,w,h,'',bg,fg
@@ -312,7 +305,6 @@ class CRotate extends Control
 			text '+' + pretty(settings.bonuses[@player]),0,17
 
 		pop()
-
 class CAdv extends Control
 	constructor : (@key,@name,x,y,diam,text) ->
 		super x,y,diam,diam,text,'black'
@@ -335,7 +327,6 @@ class CAdv extends Control
 		w = @w * s
 		h = @h
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
-
 class CDead extends Control
 	constructor : (x,y,text,fg='white') ->
 		super x,y,0,0,text,'black',fg
@@ -345,7 +336,6 @@ class CDead extends Control
 		fill @fg
 		text @text,@x,@y
 		pop()
-		
 class CShow extends CDead
 	constructor : (x,y,fg='white') ->
 		super x,y,'',fg
@@ -371,34 +361,28 @@ class CColor extends Control
 
 class State
 	constructor : (@name) ->
-		@buttons = {}
+		@controls = {}
 		@transitions = {}
-		@makeButtons()
+		@makeControls()
 
 	createTrans : (t) ->
-		target = undefined
 		arr = t.split ' '
+		target = ''
 		for word in arr
-			if word == '=>' then target = undefined
-			else if word.indexOf('=>') == 0 then target = word.slice 2
+			if ':' == _.last word then target = word.slice 0,word.length-1
 			else @transitions[word] = target
 
 	message : (key) ->
 		console.log "clicked #{@name}.#{key} => #{@transitions[key]}"
 		currState = states[@transitions[key]]
 
-	draw : ->
-		for tkey of @transitions
-			if tkey of @buttons
-				@buttons[tkey].draw()
+	draw : -> @controls[key].draw() for key of @controls
 
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
-		for key of @transitions
-			if @transitions[key] == undefined then continue
-			button = @buttons[key]
-			if key not of @buttons then continue
-			if button.inside(x, y) and button.visible
+		for key of @controls
+			control = @controls[key]
+			if control.visible and not control.disabled and control.inside x, y
 				@message key
 				break
 
@@ -406,17 +390,17 @@ class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans '=>SClock left pause qr right =>SBasic edit => show chess960'
+		@createTrans 'SClock: left right pause qr SBasic: edit'
 		settings.paused = true
 		settings.player = -1
 
-	makeButtons : ->
-		@buttons.left  = new CRotate 50, 22, 100, 44, 180, 'black', 'white', 0 # eg up
-		@buttons.right = new CRotate 50, 78, 100, 44,   0, 'black',  'white', 1 # eg down
-		@buttons.show  = new CShow     22, 50, 'white'
-		@buttons.qr    = new CImage    50, 50, 33, 12, qr
-		@buttons.pause = new CPause    67, 50, 17, 12, 'black', 'white'
-		@buttons.edit  = new CCogwheel 83, 50, 17, 12, 'black', 'white'
+	makeControls : ->
+		@controls.left  = new CRotate 50, 22, 100, 44, 180, 'black', 'white', 0 # eg up
+		@controls.right = new CRotate 50, 78, 100, 44,   0, 'black',  'white', 1 # eg down
+		@controls.pause = new CPause    67, 50, 17, 12, 'black', 'white'
+		@controls.qr    = new CImage    50, 50, 33, 12, qr
+		@controls.edit  = new CCogwheel 83, 50, 17, 12, 'black', 'white'
+		@controls.show  = new CShow     22, 50, 'white'
 
 	handlePlayer : (player) ->
 		sound.play()
@@ -424,8 +408,8 @@ class SClock extends State
 			settings.clocks[player] += settings.bonuses[player]
 		settings.paused = false
 		settings.player = 1-player
-		@buttons.left.fg  = ['black','white'][player]
-		@buttons.right.fg = ['white','black'][player]
+		@controls.left.fg  = ['black','white'][player]
+		@controls.right.fg = ['white','black'][player]
 
 	message : (key) ->
 		if key == 'left'
@@ -436,8 +420,8 @@ class SClock extends State
 
 		else if key == 'pause'
 			settings.paused = true
-			@buttons.left.fg = if settings.player == 0 then 'white' else 'black'
-			@buttons.right.fg = if settings.player == 0 then 'black' else 'white'
+			@controls.left.fg = if settings.player == 0 then 'white' else 'black'
+			@controls.right.fg = if settings.player == 0 then 'black' else 'white'
 
 		else if key == 'qr'
 			fullscreen true
@@ -469,37 +453,35 @@ class SClock extends State
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		arr = '=> bonus green hcp orange reflection white M s =>SClock cancel ok =>S960 b960 =>SAdv adv =>SBasic basic M1 M2 M3 M5 M10 M90 s0 s1 s2 s3 s5 s10 s30'.split ' '
-		@createTrans arr.join ' '
+		@createTrans 'SBasic: M1 M2 M3 M5 M10 M15 M90 s0 s1 s2 s3 s5 s10 s30 SAdv: adv S960: b960 SClock: cancel ok'
 
-	makeButtons : ->
+	makeControls : ->
 
 		x = [100/3,200/3]
 		y = [32,41,50,59,68,77,86,95]
 		diam = 8
 
-		@buttons.orange     = states.SAdv.buttons.orange
-		@buttons.white      = states.SAdv.buttons.white
-		@buttons.green      = states.SAdv.buttons.green
+		@controls.orange     = states.SAdv.controls.orange
+		@controls.white      = states.SAdv.controls.white
+		@controls.green      = states.SAdv.controls.green
 
-		@buttons.reflection = new CDead  x[0],20,'reflection'
-		@buttons.bonus      = new CDead  x[1],20,'bonus'
+		@controls.reflection = new CDead  x[0],20,'reflection'
+		@controls.bonus      = new CDead  x[1],20,'bonus'
 
-		@buttons.M          = new CDead  x[0], 25, 'minutes'
-		@buttons.s          = new CDead  x[1], 25, 'seconds'
-		@buttons.s0   			= new CAdv 'bits', '',x[1],y[0], diam, '0'
+		@controls.M          = new CDead  x[0], 25, 'minutes'
+		@controls.s          = new CDead  x[1], 25, 'seconds'
 
-		for i in range 1,7
-			M = [0,1,2,3,5,10,90][i]
+		for i in range 7
+			M = [1,2,3,5,10,15,90][i]
+			@controls['M'+M] = new CAdv 'bits', '',x[0],y[i], diam, M
 			s = [0,1,2,3,5,10,30][i]
-			@buttons['M'+M] = new CAdv 'bits', '',x[0],y[i], diam, M
-			@buttons['s'+s] = new CAdv 'bits', '',x[1],y[i], diam, s
+			@controls['s'+s] = new CAdv 'bits', '',x[1],y[i], diam, s
 
-		@buttons.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',true
-		@buttons.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
-		@buttons.b960       = new CRounded 5*100/10,y[7], 18,6, '960'
-		@buttons.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
-		@buttons.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
+		@controls.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',true
+		@controls.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
+		@controls.b960       = new CRounded 5*100/10,y[7], 18,6, '960'
+		@controls.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
+		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
 
@@ -508,42 +490,38 @@ class SBasic extends State
 		else if key == 'b960'
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
-		else # 6+7 shortcut buttons
+		else # 6+7 shortcut controls
 			st = settings
 			if key[0] == 'M' then st.bits = st.bits.filter (value) -> value[0] != 'M'
 			if key[0] == 's' then st.bits = st.bits.filter (value) -> value[0] != 's'
 			states.SAdv.message key
-			@buttons.ok.visible = st.sums.M > 0 and st.sums.t < 60
+			@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
 
 		super key
 
 class SAdv extends State
 	constructor : (name) ->
 		super name
-		arr = '=> green white orange reflection bonus hcp M s t =>SBasic basic =>SAdv adv =>S960 b960 =>SClock cancel ok =>SBasic basic =>SAdv'.split ' '
-		for letter in 'Mst'
-			for number in [1,2,4,8,15,30,60]
-				arr.push letter + number
-		@createTrans arr.join ' '
+		@createTrans 'SAdv: M1 M2 M4 M8 M15 M30 M60 s1 s2 s4 s8 s15 s30 s60 t1 t2 t4 t8 t15 t30 t60 SBasic: basic S960: b960 SClock: cancel ok'
 		@uppdatera()
 
-	makeButtons : ->
+	makeControls : ->
 
-		@buttons.orange     = new CColor 50, 2.5,'orange'
-		@buttons.white      = new CColor 50, 9.5,'white'
-		@buttons.green      = new CColor 50,16.5,'green'
+		@controls.orange     = new CColor 50, 2.5,'orange'
+		@controls.white      = new CColor 50, 9.5,'white'
+		@controls.green      = new CColor 50,16.5,'green'
 
-		@buttons.reflection = new CDead  25,21,'reflection'
-		@buttons.bonus      = new CDead  50,21,'bonus'
-		@buttons.hcp        = new CDead  75,21,'handicap'
+		@controls.reflection = new CDead  25,21,'reflection'
+		@controls.bonus      = new CDead  50,21,'bonus'
+		@controls.hcp        = new CDead  75,21,'handicap'
 
 		y = 95
 
-		@buttons.basic      = new CRounded 1*100/10,y, 18,6, 'basic'
-		@buttons.adv        = new CRounded 3*100/10,y, 18,6, 'adv', true
-		@buttons.b960       = new CRounded 5*100/10,y, 18,6, '960'
-		@buttons.cancel     = new CRounded 7*100/10,y, 18,6, 'cancel'
-		@buttons.ok         = new CRounded 9*100/10,y, 18,6, 'ok'
+		@controls.basic      = new CRounded 1*100/10,y, 18,6, 'basic'
+		@controls.adv        = new CRounded 3*100/10,y, 18,6, 'adv', true
+		@controls.b960       = new CRounded 5*100/10,y, 18,6, '960'
+		@controls.cancel     = new CRounded 7*100/10,y, 18,6, 'cancel'
+		@controls.ok         = new CRounded 9*100/10,y, 18,6, 'ok'
 
 		@makeEditButtons()
 
@@ -555,12 +533,12 @@ class SAdv extends State
 			xoff = xsize
 			yoff = 33+2
 			diam = 7
-			@buttons[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
+			@controls[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
 			for j in range 7
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@buttons[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, diam, number
+					@controls[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, diam, number
 
 	message : (key) ->
 		if key == 'basic'
@@ -573,52 +551,51 @@ class SAdv extends State
 			if key of hash
 				for msg in hash[key].split ' '
 					if msg != '' then @message msg
-			else # 3 x 7 edit buttons
+			else # 3 x 7 edit controls
 				st = settings
 				st.flip key
-				@buttons.ok.visible = st.sums.M > 0 and st.sums.t < 60
+				@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
 
 		@uppdatera()
 		super key
 		
 	uppdatera : ->
-		@buttons.white.text = settings.show
+		@controls.white.text = settings.show
 		
 		settings.handicap()
 		sp = settings.players
-		@buttons.orange.text = if settings.sums.t == 0 then '' else prettyPair sp[0][0], sp[0][1]
-		@buttons.green.text  = if settings.sums.t == 0 then '' else prettyPair sp[1][0], sp[1][1]
+		@controls.orange.text = if settings.sums.t == 0 then '' else prettyPair sp[0][0], sp[0][1]
+		@controls.green.text  = if settings.sums.t == 0 then '' else prettyPair sp[1][0], sp[1][1]
 
 class S960 extends State
 	constructor : (name) ->
 		super name
-		arr = '=> C960 CNumber =>SClock cancel ok =>SAdv adv =>SBasic basic =>S960 b960 random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'.split ' '
-		@createTrans arr.join ' '
-		@makeButtons()
+		@createTrans 'S960: random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480 SBasic: basic SAdv: adv SClock: cancel ok'
+		@makeControls()
 
-	makeButtons : ->
+	makeControls : ->
 
 		x = [100/4,200/4,300/4]
 		y = [-5,40,52,64,76,78,90,95]
 		diam = 10
 
-		@buttons.C960   		= new C960    50,y[0], 100, 10
-		@buttons.CNumber    = new CNumber 50,25
+		@controls.C960    = new C960    50,y[0], 100, 10
+		@controls.CNumber = new CNumber 50,25
 
 		for i in range 10
 			number = [1,2,4,8,15,30,60,120,240,480][i]
 			key    = 'R'+number
 			xi     = [0,0,0,0,1,1,1,2,2,2][i]
 			yi     = [1,2,3,4,1,2,3,1,2,3][i]
-			@buttons[key] = new CAdv 'bits960',key, x[xi],y[yi], diam, number
+			@controls[key] = new CAdv 'bits960',key, x[xi],y[yi], diam, number
 
-		@buttons.random     = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
+		@controls.random     = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random'
 
-		@buttons.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic'
-		@buttons.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
-		@buttons.b960       = new CRounded 5*100/10,y[7], 18,6, '960',true
-		@buttons.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
-		@buttons.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
+		@controls.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic'
+		@controls.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv'
+		@controls.b960       = new CRounded 5*100/10,y[7], 18,6, '960',true
+		@controls.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
+		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
 	message : (key) ->
 		if key == 'adv'
@@ -627,8 +604,8 @@ class S960 extends State
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else if key[0] == 'R'
-			settings.flip960 key # 10 buttons
-			@buttons.C960.visible = settings.number < 960
+			settings.flip960 key # 10 controls
+			@controls.C960.visible = settings.number < 960
 		else if key == 'random' 
 			nr = _.random 0,959
 			settings.number = nr
@@ -637,7 +614,7 @@ class S960 extends State
 				if nr >= value
 					nr -= value
 					settings.flip960 'R' + value
-			@buttons.C960.visible = settings.number < 960
+			@controls.C960.visible = settings.number < 960
 		super key
 
 ###################################
@@ -692,9 +669,9 @@ dump = -> # log everything
 		console.log 'State',state
 		for tkey of state.transitions
 			transition = state.transitions[tkey]
-			button = state.buttons[tkey]
+			control = state.controls[tkey]
 			if transition == undefined then transition = 'nothing'
-			console.log ' ',tkey,'=>',transition,button
+			console.log ' ',tkey,'=>',transition,control
 
 mousePressed = -> if os == 'Windows' then currState.mouseClicked()
 touchStarted = -> if os != 'Windows' then currState.mouseClicked()
