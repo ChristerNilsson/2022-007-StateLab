@@ -306,7 +306,7 @@ class CRotate extends Control
 		text d2(s), mw/2, -2
 
 		textSize 10
-		if tertier < 10*60 then text t,40,0
+		if tertier < 10*60 then text t,40,-2
 
 		if settings.bonuses[@player] > 0
 			textSize 8
@@ -579,7 +579,7 @@ class SAdv extends State
 		else if key == 'cancel' then settings.cancel()
 		else if key == 'ok' then settings.ok()
 		else
-			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's0':'', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
+			hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
 			if key of hash
 				for msg in hash[key].split ' '
 					if msg != '' then @message msg
