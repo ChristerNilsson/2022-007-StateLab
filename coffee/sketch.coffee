@@ -313,23 +313,24 @@ class CAdv extends Control
 		push()
 		translate @x,@y
 		fill if @name in settings.bits then 'yellow' else 'gray'
-		scale [height/width,width/height][TOGGLE],1
-		ellipse 0,0,7*height/width,7*height/width
+		s = [height/width,width/height][TOGGLE]
+		ellipse 0,0,@w*s,@h
 		fill 'black'
 		textSize 5
 		text @text,0,0.2
 		pop()
 
 	inside : (x,y) ->
+		s = [height/width,width/height][TOGGLE]
 		console.log os,width,height,width/height,height/width
 		if os == 'Windows'
-			w = @w*0.4 #* [height/width,width/height][1-TOGGLE] # 4
-			h = @h*0.9 #* [height/width,width/height][TOGGLE] # 2
+			w = @w * s 
+			h = @h #* [height/width,width/height][TOGGLE] # 2
 		if os == 'Mac'
-			w = @w #* [height/width,width/height][1-TOGGLE] # 4
+			w = @w * s #* [height/width,width/height][1-TOGGLE] # 4
 			h = @h #* [height/width,width/height][TOGGLE] # 2
 		if os == 'Android'
-			w = @w #* [height/width,width/height][1-TOGGLE] # 4
+			w = @w * s #* [height/width,width/height][1-TOGGLE] # 4
 			h = @h #* [height/width,width/height][TOGGLE] # 2
 
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
@@ -604,7 +605,7 @@ class SAdv extends State
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@buttons[name] = new CAdv name, xoff+xsize*i, yoff+ysize*j, xsize, ysize, number
+					@buttons[name] = new CAdv name, xoff+xsize*i, yoff+ysize*j, 7, 7, number
 
 	message : (key) ->
 		if key == 'basic'
