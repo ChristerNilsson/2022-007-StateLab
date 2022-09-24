@@ -77,6 +77,7 @@ class CSettings
 	constructor : -> 
 		console.log if localStorage.settings then "load" else "default"
 		if localStorage.settings then Object.assign @, JSON.parse localStorage.settings
+		console.log 'A0',JSON.stringify @bits
 
 		@bits960 ||= ['R480','R30','R8']
 		@number ||= 518 # normal chess
@@ -90,7 +91,7 @@ class CSettings
 		@player ||= -1
 		@timeout ||= false
 		@paused = true
-
+		console.log 'A',JSON.stringify @bits
 		@handicap()
 		@save()
 
@@ -111,22 +112,26 @@ class CSettings
 		localStorage.settings = JSON.stringify @
 		console.log 'save' #,JSON.stringify @
 
-	flip : (key) ->
-		if key in @bits then _.remove @bits, (n) -> n == key else @bits.push key
+	flip : (key) =>
+		if key in @bits then _.remove @bits, (n) => n == key else @bits.push key
+		console.log 'B',key,JSON.stringify @bits
+
 		@sums = @calcSums()
 		@show = @compact()
 
-	flip960 : (key) ->
+	flip960 : (key) =>
 		if key in @bits960 then _.remove @bits960, (n) -> n == key else @bits960.push key
 		@number = @calcSum960()
 		@chess960 = chess960 @number
 
-	calcSums : ->
+	calcSums : =>
 		res = {M:0,s:0,t:0}
+		console.log 'C',JSON.stringify @bits
 		for key in settings.bits
-			letter = key[0]
-			number = parseInt key.slice 1
-			res[letter] += number
+			if key
+				letter = key[0]
+				number = parseInt key.slice 1
+				res[letter] += number
 		res
 
 	calcSum960 : ->
@@ -166,6 +171,7 @@ class CSettings
 	cancel : -> 
 		Object.assign @, backup
 		@paused = true
+		#settings.paused = true
 
 class Control
 	constructor : (@x,@y,@w,@h,@text='',@bg='black',@fg='white') ->
@@ -174,16 +180,11 @@ class Control
 		# @y = Math.round @y
 		# @w = Math.round @w
 		# @h = Math.round @h
-	draw : ->
-		if @visible
-			#push()
-			textSize 4
-			fill @fg
-			text @text,@x,@y
-			#pop()
+	draw : -> console.log 'Control.draw must be overriden!'
 	inside : (x,y) ->
 		w = @w * [height/width,width/height][1-TOGGLE]
 		-w/2 <= x-@x <= w/2 and -@h/2 <= y-@y <= @h/2
+
 class CNumber extends Control
 	constructor : (x,y) ->
 		super x,y,0,0
@@ -195,6 +196,7 @@ class CNumber extends Control
 		fill 'white'
 		text settings.number,@x,@y
 		pop()
+
 class C960 extends Control
 	constructor : (x,y,w,h) ->
 		super x,y,w,h
@@ -210,6 +212,7 @@ class C960 extends Control
 			xoff = @x + (dx-w)/2
 			for i in range 8
 				image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
+
 class CRounded extends Control
 	constructor : (x,y,w,h,text='',@disabled=false,bg='white',fg='black') ->
 		super x,y,w,h,text,bg,fg
@@ -222,6 +225,7 @@ class CRounded extends Control
 			fill if @disabled then "white" else @fg
 			text @text,@x,@y
 			pop()
+
 class CPause extends Control
 	constructor : (x,y,w=0,h=0,@bg='black',@fg='white') ->
 		super x,y,w,h
@@ -230,6 +234,7 @@ class CPause extends Control
 			fill @fg
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
+
 class CCogwheel extends Control # Kugghjul
 	constructor : (x,y,w=0,h=0,@bg='black',@fg='white') ->
 		super x,y,w,h
@@ -251,6 +256,7 @@ class CCogwheel extends Control # Kugghjul
 				rect 0,0,1,1
 				pop()
 			pop()
+
 class CImage extends Control
 	constructor : (x,y,w,h,@image) ->
 		super x,y,w,h
@@ -258,6 +264,7 @@ class CImage extends Control
 		if @image
 			w = @h * [height/width,width/height][TOGGLE]
 			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
+
 class CRotate extends Control
 	constructor : (x,y,w,h,@degrees,bg,fg,@player) ->
 		super x,y,w,h,'',bg,fg
@@ -272,9 +279,6 @@ class CRotate extends Control
 		push()
 		translate @x,@y
 		rotate @degrees
-
-		#fill 'black'
-		#rect 0,0,@w,@h
 
 		if settings.player == @player
 			minCol = 'red'
@@ -302,6 +306,7 @@ class CRotate extends Control
 			text '+' + pretty(settings.bonuses[@player]),0,17
 
 		pop()
+
 class CAdv extends Control
 	constructor : (@key,@name,x,y,diam,text) ->
 		super x,y,diam,diam,text,'black'
@@ -324,6 +329,7 @@ class CAdv extends Control
 		w = @w * s
 		h = @h
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
+
 class CDead extends Control
 	constructor : (x,y,text,fg='white') ->
 		super x,y,0,0,text,'black',fg
@@ -333,6 +339,7 @@ class CDead extends Control
 		fill @fg
 		text @text,@x,@y
 		pop()
+
 class CShow extends CDead
 	constructor : (x,y,fg='white') ->
 		super x,y,'',fg
@@ -346,6 +353,7 @@ class CShow extends CDead
 		text settings.show, 0,0
 		#super()
 		pop()
+
 class CColor extends Control
 	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
@@ -358,33 +366,54 @@ class CColor extends Control
 class State
 	constructor : (@name) ->
 		@controls = {}
-		@transitions = {}
+		@recievers = {}
+		@senders = {}
 		@makeControls()
+		@makeRecievers()
 
-	addTrans : (target, messages) ->
+	accept : (messages,f) ->
+		console.log 'Accepting',@name, messages
+		@recievers[message] = f for message in messages.split ' '
+
+	addMessages : (target, messages) ->
 		if target == '' then target = @name
-		@transitions[message] = target for message in messages.split ' '
+		@senders[message] = target for message in messages.split ' '
 
-	message : (key) -> console.log "Message #{@name}.#{key} not handled!"
-	draw : -> @controls[key].draw() for key of @controls
+	message : (keys) =>
+		console.log 'messages for',@name,keys
+		for key in keys.split ' '
+			if key of @recievers then @recievers[key](key) else console.log "Message #{@name}.#{key} not handled!"
+	
+	draw : (key) => @controls[key].draw key for key of @controls
 
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
 		for key of @controls
 			control = @controls[key]
 			if control.visible and not control.disabled and control.inside x, y
-				console.log 'mouseClicked',key,@transitions[key]
-				currState = states[@transitions[key]]
+				console.log 'mouseClicked',key,@senders[key]
+				currState = states[@senders[key]]
 				currState.message key
 				break
+
+handlePlayer = (player) ->
+	if settings.timeout then return
+	if settings.paused 
+		sound.play()
+	else if settings.player == -1
+		sound.play()
+	else if settings.player == player
+		sound.play()
+		settings.clocks[player] += settings.bonuses[player]
+	settings.paused = false
+	settings.player = 1-player
 
 class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@addTrans '',       'left right pause qr'
-		@addTrans 'SBasic', 'basic'
-		settings.paused = true
+		@addMessages '',       'left right pause qr'
+		@addMessages 'SBasic', 'basic'
 
 	makeControls : ->
 		@controls.left  = new CRotate 50, 22, 100, 44, 180, 'black', 'white', 0 # eg up
@@ -394,32 +423,33 @@ class SClock extends State
 		@controls.basic = new CCogwheel 83, 50, 17, 12, 'black', 'white'
 		@controls.show  = new CShow     22, 50, 'white'
 
-	handlePlayer : (player) ->
-		if settings.paused 
-			sound.play()
-		else if settings.player == -1
-			sound.play()
-		else if settings.player == player
-			sound.play()
-			settings.clocks[player] += settings.bonuses[player]
-		settings.paused = false
-		settings.player = 1-player
-
-	message : (key) ->
-
-		if key == 'left'
-			if settings.timeout then return else @handlePlayer 0
-		else if key == 'right'
-			if settings.timeout then return else @handlePlayer 1
-		else if key == 'pause'
-			settings.paused = true
-		else if key == 'qr'
+	makeRecievers : ->
+		@accept 'left',  (key) => handlePlayer 0
+		@accept 'right', (key) => handlePlayer 1
+		@accept 'pause', (key) => settings.paused = true
+		@accept 'qr', (key) =>
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
-		else if key == 'cancel' then settings.cancel()
-		else if key == 'ok' then settings.ok()
-		else super key
-		settings.save()
+		@accept 'cancel', (key) => settings.cancel()
+		@accept 'ok', (key) => settings.ok()
+
+
+	# message : (key) ->
+	# 	settings.save()
+
+		# if key == 'left'
+		# 	if settings.timeout then return else @handlePlayer 0
+		# else if key == 'right'
+		# 	if settings.timeout then return else @handlePlayer 1
+		# else if key == 'pause'
+		# 	settings.paused = true
+		# else if key == 'qr'
+		# 	fullscreen true
+		# 	resizeCanvas innerWidth, innerHeight
+		# else if key == 'cancel' then settings.cancel()
+		# else if key == 'ok' then settings.ok()
+		# else super key
+		# settings.save()
 
 	indicator : ->
 		a = settings.clocks[0]
@@ -432,18 +462,20 @@ class SClock extends State
 		line 90,andel, 99,andel
 		pop()
 
-	draw : ->
+	draw : (key) =>
 		super()
 		@indicator()
 
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		@addTrans '',       'M1 M2 M3 M5 M10 M15 M90'
-		@addTrans '',       's0 s1 s2 s3 s5 s10 s30'
-		@addTrans 'SAdv',   'adv'
-		@addTrans 'S960',   'b960'
-		@addTrans 'SClock', 'cancel ok'
+		@addMessages '',       'M1 M2 M3 M5 M10 M15 M20 M30 M45 M60 M90'
+		@addMessages '',       's0 s1 s2 s3 s5 s10 s30'
+		@addMessages 'SAdv',   'adv'
+		@addMessages 'S960',   'b960'
+		@addMessages 'SClock', 'cancel ok'
+		@controls.ok.visible = settings.sums.M > 0 and settings.sums.t < 60
+		@controls.white.text = settings.show
 
 	makeControls : ->
 
@@ -461,9 +493,15 @@ class SBasic extends State
 		@controls.M          = new CDead  x[0], 25, 'minutes'
 		@controls.s          = new CDead  x[1], 25, 'seconds'
 
+		for i in range 5
+			M = [1,2,3,5,10][i]
+			@controls['M'+M] = new CAdv 'bits', '',x[0]-10,y[i], diam, M
+
+		for i in range 6
+			M = [15,20,30,45,60,90][i]
+			@controls['M'+M] = new CAdv 'bits', '',x[0]+10,y[i], diam, M
+
 		for i in range 7
-			M = [1,2,3,5,10,15,90][i]
-			@controls['M'+M] = new CAdv 'bits', '',x[0],y[i], diam, M
 			s = [0,1,2,3,5,10,30][i]
 			@controls['s'+s] = new CAdv 'bits', '',x[1],y[i], diam, s
 
@@ -473,30 +511,30 @@ class SBasic extends State
 		@controls.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
 		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
-	message : (key) ->
-		st = settings
-		if key == 'basic'
+	makeRecievers : ->
+		@accept 'basic', (key) => 
 			backup = clone settings # to be used by cancel
-			console.log 'backup skapad',backup
-		else if key[0]=='M'
-			st.bits = st.bits.filter (value) -> value[0] != 'M'
+		@accept 'M1 M2 M3 M5 M10 M15 M20 M30 M45 M60 M90', (key) =>
+			settings.bits = settings.bits.filter (value) => value[0] != 'M'
+			console.log 'C',key,JSON.stringify settings.bits
 			states.SAdv.message key
-			@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
-		else if key[0]=='s'
-			st.bits = st.bits.filter (value) -> value[0] != 's'
+			console.log 'C2',key,JSON.stringify settings.bits
+			@controls.ok.visible = settings.sums.M > 0 and settings.sums.t < 60
+		@accept 's0 s1 s2 s3 s5 s10 s30', (key) =>
+			settings.bits = settings.bits.filter (value) => value[0] != 's'
+			console.log 'D',key,JSON.stringify settings.bits
 			states.SAdv.message key
-		else super key
+			console.log 'D2',key,JSON.stringify settings.bits
 
 class SAdv extends State
 	constructor : (name) ->
 		super name
-		@addTrans '',       'M1 M2 M4 M8 M15 M30 M60'
-		@addTrans '',       's1 s2 s4 s8 s15 s30 s60'
-		@addTrans '',       't1 t2 t4 t8 t15 t30'
-		@addTrans 'SBasic', 'basic'
-		@addTrans 'S960',   'b960'
-		@addTrans 'SClock', 'cancel ok'
-		@uppdatera()
+		@addMessages '',       'M1 M2 M4 M8 M15 M30 M60'
+		@addMessages '',       's1 s2 s4 s8 s15 s30 s60'
+		@addMessages '',       't1 t2 t4 t8 t15 t30'
+		@addMessages 'SBasic', 'basic'
+		@addMessages 'S960',   'b960'
+		@addMessages 'SClock', 'cancel ok'
 
 	makeControls : ->
 
@@ -533,36 +571,46 @@ class SAdv extends State
 				if i!=2 or j!=6
 					@controls[name] = new CAdv 'bits', name, xoff+xsize*i, yoff+ysize*j, diam, number
 
-	message : (key) ->
-		hash = {'M3':'M1 M2', 'M5':'M1 M4', 'M10':'M2 M8', 'M90':'M30 M60', 's3':'s1 s2', 's5':'s1 s4', 's10':'s2 s8'}
-		if key == 'adv'
-		else if key of hash
-			for msg in hash[key].split ' '
-				if msg != '' then @message msg
-		else if key[0] in 'Mst'
-			st = settings
-			st.flip key
-			@controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
-		else super key
+	makeRecievers : ->
+		@accept 'adv', (key) => uppdatera()
+		@accept 'M1 M2 M4 M8 M15 M30 M60', (key) =>	uppdatera key
+		@accept 'M3', (key) => @message 'M1 M2'
+		@accept 'M5', (key) => @message 'M1 M4'
+		@accept 'M10', (key) => @message 'M2 M8'
+		@accept 'M20', (key) => @message 'M15 M4 M1'
+		@accept 'M45', (key) => @message 'M15 M30'
+		@accept 'M90', (key) => @message 'M30 M60'
 
-		@uppdatera()
+		@accept 's1 s2 s4 s8 s15 s30 s60', (key) => uppdatera key
+		@accept 's3', (key) => @message 's1 s2'
+		@accept 's5', (key) => @message 's1 s4'
+		@accept 's10', (key) => @message 's2 s8'
+
+		@accept 't1 t2 t4 t8 t15 t30', (key) => uppdatera key
 		
-	uppdatera : ->
-		@controls.white.text = settings.show
-		
-		settings.handicap()
-		sp = settings.players
-		@controls.orange.text = if settings.sums.t == 0 then '' else prettyPair sp[0][0], sp[0][1]
-		@controls.green.text  = if settings.sums.t == 0 then '' else prettyPair sp[1][0], sp[1][1]
+
+
+
+uppdatera = (key) =>
+	st = settings
+	console.log 'F',key
+	if key then	st.flip key
+	currState.controls.ok.visible = st.sums.M > 0 and st.sums.t < 60
+	currState.controls.white.text = settings.show
+
+	settings.handicap()
+	sp = settings.players
+	currState.controls.orange.text = if settings.sums.t == 0 then '' else prettyPair sp[0][0], sp[0][1]
+	currState.controls.green.text  = if settings.sums.t == 0 then '' else prettyPair sp[1][0], sp[1][1]
 
 class S960 extends State
 	constructor : (name) ->
 		super name
-		@addTrans '',       'R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'
-		@addTrans '',       'random'
-		@addTrans 'SBasic', 'basic'
-		@addTrans 'SAdv',   'adv'
-		@addTrans 'SClock', 'cancel ok'
+		@addMessages '',       'R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'
+		@addMessages '',       'random'
+		@addMessages 'SBasic', 'basic'
+		@addMessages 'SAdv',   'adv'
+		@addMessages 'SClock', 'cancel ok'
 		@makeControls()
 
 	makeControls : ->
@@ -589,12 +637,12 @@ class S960 extends State
 		@controls.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel'
 		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok'
 
-	message : (key) ->
-		if key == 'b960'
-		else if key[0] == 'R'
+	makeRecievers : ->
+		@accept 'b960', (key) =>
+		@accept 'R1 R2 R4 R8 R15 R30 R60 R120 R240 R480', (key) =>
 			settings.flip960 key # 10 controls
 			@controls.C960.visible = settings.number < 960
-		else if key == 'random' 
+		@accept 'random', (key) =>
 			nr = _.random 0,959
 			settings.number = nr
 			settings.bits960 = []
@@ -603,7 +651,7 @@ class S960 extends State
 					nr -= value
 					settings.flip960 'R' + value
 			@controls.C960.visible = settings.number < 960
-		else super key
+		#else super key
 
 ###################################
 
@@ -655,8 +703,8 @@ dump = -> # log everything
 		state = states[skey]
 		console.log ''
 		console.log 'State',state
-		for tkey of state.transitions
-			transition = state.transitions[tkey]
+		for tkey of state.senders
+			transition = state.senders[tkey]
 			control = state.controls[tkey]
 			if transition == undefined then transition = 'nothing'
 			console.log ' ',tkey,'=>',transition,control
