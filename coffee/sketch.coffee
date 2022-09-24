@@ -87,7 +87,7 @@ class CSettings
 		@clocks ||= [180*60,180*60] # tertier
 		@bonuses ||= [2*60,2*60]    # tertier
 		@sums ||= {M:3,s:2,t:0}
-		@player ||= -1 
+		@player ||= -1
 		@timeout ||= false
 		@paused = true
 
@@ -102,10 +102,6 @@ class CSettings
 			c = 0
 			@timeout = true
 			@paused = true
-			if @player == 0 
-				currState.controls.left.bg = 'red'
-			else
-				currState.controls.right.bg = 'red'
 		@clocks[@player] = c
 
 	save : ->
@@ -150,7 +146,7 @@ class CSettings
 		header
 
 	handicap : ->
-		hcp = @sums.t / 60 # 0.0 .. 1.0
+		hcp = @sums.t / 60 # 0/60 to 59/60
 		refl  = MINUTE * @sums.M # tertier
 		bonus =    SEC * @sums.s # tertier
 		@players = []
@@ -158,6 +154,7 @@ class CSettings
 		@players[1] = [refl - refl*hcp, bonus - bonus*hcp]
 
 	ok : ->
+		console.log 'settings.ok'
 		@sums = @calcSums()
 		@handicap()
 		@clocks  = [@players[0][0], @players[1][0]]
@@ -165,15 +162,13 @@ class CSettings
 		@timeout = false
 		@paused = true
 		@player = -1
-		states.SClock.controls.left.bg = 'black'
-		states.SClock.controls.right.bg = 'black'
 
 	cancel : -> 
 		Object.assign @, backup
 		@paused = true
 
 class Control
-	constructor : (@x,@y,@w,@h,@text='',@bg='white',@fg='black') ->
+	constructor : (@x,@y,@w,@h,@text='',@bg='black',@fg='white') ->
 		@visible = true
 		# @x = Math.round @x
 		# @y = Math.round @y
@@ -181,13 +176,11 @@ class Control
 		# @h = Math.round @h
 	draw : ->
 		if @visible
-			push()
-			fill @bg
-			rect @x,@y,@w,@h
+			#push()
 			textSize 4
 			fill @fg
 			text @text,@x,@y
-			pop()
+			#pop()
 	inside : (x,y) ->
 		w = @w * [height/width,width/height][1-TOGGLE]
 		-w/2 <= x-@x <= w/2 and -@h/2 <= y-@y <= @h/2
@@ -230,7 +223,7 @@ class CRounded extends Control
 			text @text,@x,@y
 			pop()
 class CPause extends Control
-	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
+	constructor : (x,y,w=0,h=0,@bg='black',@fg='white') ->
 		super x,y,w,h
 	draw : ->
 		if not settings.paused
@@ -238,7 +231,7 @@ class CPause extends Control
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
 class CCogwheel extends Control # Kugghjul
-	constructor : (x,y,w=0,h=0,@bg='white',@fg='black') ->
+	constructor : (x,y,w=0,h=0,@bg='black',@fg='white') ->
 		super x,y,w,h
 	draw : ->
 		if settings.paused
@@ -280,16 +273,19 @@ class CRotate extends Control
 		translate @x,@y
 		rotate @degrees
 
-		minCol = if settings.player == @player then 'red' else 'grey'
-		secCol = if settings.player == @player then 'white' else 'lightgrey'
+		#fill 'black'
+		#rect 0,0,@w,@h
+
+		if settings.player == @player
+			minCol = 'red'
+			secCol = if settings.timeout then 'red' else 'white'
+		else
+			minCol = 'lightgrey'
+			secCol = 'grey'
 
 		textSize 18+9
 		mw = textWidth m
 		sw = textWidth d2 2
-		@bg = if settings.timeout and settings.player = @player then 'red' else 'black'
-
-		fill @bg
-		rect 0,0,@w,@h
 
 		fill minCol
 		text m, -sw/2, -2
@@ -302,6 +298,7 @@ class CRotate extends Control
 
 		if settings.sums.t > 0 and settings.bonuses[@player] > 0
 			textSize 8
+			fill 'grey'
 			text '+' + pretty(settings.bonuses[@player]),0,17
 
 		pop()
@@ -353,7 +350,6 @@ class CColor extends Control
 	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
 		push()
-		#textAlign CENTER,CENTER
 		textSize 4
 		fill @fg
 		text @text,@x,@y
@@ -365,12 +361,9 @@ class State
 		@transitions = {}
 		@makeControls()
 
-	createTrans : (t) ->
-		arr = t.split ' '
-		target = ''
-		for word in arr
-			if ':' == _.last word then target = word.slice 0,word.length-1
-			else @transitions[word] = target
+	addTrans : (target, messages) ->
+		if target == '' then target = @name
+		@transitions[message] = target for message in messages.split ' '
 
 	message : (key) -> console.log "Message #{@name}.#{key} not handled!"
 	draw : -> @controls[key].draw() for key of @controls
@@ -389,16 +382,16 @@ class SClock extends State
 
 	constructor : (name) ->
 		super name
-		@createTrans 'SClock: left right pause qr SBasic: edit'
+		@addTrans '',       'left right pause qr'
+		@addTrans 'SBasic', 'basic'
 		settings.paused = true
-		settings.player = -1
 
 	makeControls : ->
 		@controls.left  = new CRotate 50, 22, 100, 44, 180, 'black', 'white', 0 # eg up
-		@controls.right = new CRotate 50, 78, 100, 44,   0, 'black',  'white', 1 # eg down
+		@controls.right = new CRotate 50, 78, 100, 44,   0, 'black', 'white', 1 # eg down
 		@controls.pause = new CPause    67, 50, 17, 12, 'black', 'white'
 		@controls.qr    = new CImage    50, 50, 33, 12, qr
-		@controls.edit  = new CCogwheel 83, 50, 17, 12, 'black', 'white'
+		@controls.basic = new CCogwheel 83, 50, 17, 12, 'black', 'white'
 		@controls.show  = new CShow     22, 50, 'white'
 
 	handlePlayer : (player) ->
@@ -440,14 +433,17 @@ class SClock extends State
 		pop()
 
 	draw : ->
-		background 'black'
 		super()
 		@indicator()
 
 class SBasic extends State
 	constructor : (name) ->
 		super name
-		@createTrans 'SBasic: M1 M2 M3 M5 M10 M15 M90 s0 s1 s2 s3 s5 s10 s30 SAdv: adv S960: b960 SClock: cancel ok'
+		@addTrans '',       'M1 M2 M3 M5 M10 M15 M90'
+		@addTrans '',       's0 s1 s2 s3 s5 s10 s30'
+		@addTrans 'SAdv',   'adv'
+		@addTrans 'S960',   'b960'
+		@addTrans 'SClock', 'cancel ok'
 
 	makeControls : ->
 
@@ -479,7 +475,7 @@ class SBasic extends State
 
 	message : (key) ->
 		st = settings
-		if key in ['edit','basic']
+		if key == 'basic'
 			backup = clone settings # to be used by cancel
 			console.log 'backup skapad',backup
 		else if key[0]=='M'
@@ -494,7 +490,12 @@ class SBasic extends State
 class SAdv extends State
 	constructor : (name) ->
 		super name
-		@createTrans 'SAdv: M1 M2 M4 M8 M15 M30 M60 s1 s2 s4 s8 s15 s30 s60 t1 t2 t4 t8 t15 t30 t60 SBasic: basic S960: b960 SClock: cancel ok'
+		@addTrans '',       'M1 M2 M4 M8 M15 M30 M60'
+		@addTrans '',       's1 s2 s4 s8 s15 s30 s60'
+		@addTrans '',       't1 t2 t4 t8 t15 t30'
+		@addTrans 'SBasic', 'basic'
+		@addTrans 'S960',   'b960'
+		@addTrans 'SClock', 'cancel ok'
 		@uppdatera()
 
 	makeControls : ->
@@ -557,7 +558,11 @@ class SAdv extends State
 class S960 extends State
 	constructor : (name) ->
 		super name
-		@createTrans 'S960: random R1 R2 R4 R8 R15 R30 R60 R120 R240 R480 SBasic: basic SAdv: adv SClock: cancel ok'
+		@addTrans '',       'R1 R2 R4 R8 R15 R30 R60 R120 R240 R480'
+		@addTrans '',       'random'
+		@addTrans 'SBasic', 'basic'
+		@addTrans 'SAdv',   'adv'
+		@addTrans 'SClock', 'cancel ok'
 		@makeControls()
 
 	makeControls : ->
