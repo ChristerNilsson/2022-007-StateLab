@@ -13,10 +13,13 @@ HEARTBEAT = 1000 # ms updates of localStorage
 FRAMERATE = 60 # 10
 
 settings  = {}
-minutes   = new CBits [1,2,4,8,15,30,60]
-seconds   = new CBits [1,2,4,8,15,30,60]
-handicap  = new CBits [1,2,4,8,15,30]
-number960 = new CBits [1,2,4,8,15,30,60,120,240,480]
+bits = {}
+bits.minutes   = new CBits [1,2,4,8,15,30,60]
+bits.seconds   = new CBits [1,2,4,8,15,30,60]
+bits.handicap  = new CBits [1,2,4,8,15,30]
+bits.number960 = new CBits [1,2,4,8,15,30,60,120,240,480]
+
+tw = 0
 
 backup = null
 states = {}
@@ -56,7 +59,7 @@ assert '1m1t', pretty 3601
 assert '2s3t', pretty 123
 assert '60m30s', pretty 60*60*60+30*60
 
-prettyPair = (a,b) ->
+prettyPair = (a,b) -> 
 	separator = if pretty(b) != '' then ' + ' else ''
 	pretty(a) + separator + pretty(b)
 assert '1m1t + 2s3t', prettyPair 3601,123
@@ -67,7 +70,6 @@ d2 = (x) ->
 assert '03', d2 3
 
 mst = (x) -> # tertier
-	orig = x
 	t = x %% 60
 	x //= 60
 	s = x %% 60
@@ -78,11 +80,23 @@ assert [3,0,30], mst 180*60+30
 
 clone = (x) -> JSON.parse JSON.stringify x
 
+getOrange = ->
+	settings.makeHandicap()
+	sp = settings.players
+	if bits.handicap.nr == 0 then '' else prettyPair sp[0][0], sp[0][1]
+
+getWhite = -> settings.compact()
+
+getGreen = -> 
+	settings.makeHandicap()
+	sp = settings.players
+	if bits.handicap.nr == 0 then '' else prettyPair sp[1][0], sp[1][1]
+
 cancel = =>
 	settings.cancel()
 	currState = states.SClock
 
-ok     = =>
+ok = =>
 	settings.ok()
 	currState = states.SClock
 
@@ -90,27 +104,46 @@ class CSettings
 	constructor : -> 
 		console.log if localStorage.settings then "load" else "default"
 		if localStorage.settings then Object.assign @, JSON.parse localStorage.settings
-
-		@minutes  ||= 3
-		@seconds  ||= 2
-		@handicap ||= 0
-		@number960 ||= 518
-		@chess960 ||= 'RNBQKBNR'
-		@show ||= '3 + 2'
+		@bits ||= {minutes:3, seconds:2, handicap:0, number960:518}
+		@bonus ||= ['',''] # redundant, sparar tid
+		@bonuses ||= [2*60,2*60] # tertier, redundant, sparar tid
+		@chess960 ||= 'RNBQKBNR' # redundant, sparar tid
 		@clocks ||= [180*60,180*60] # tertier
-		@bonuses ||= [2*60,2*60]    # tertier
+		@info ||= {orange:'', white:'3+2', green:''} # redundant, sparar tid
+		@paused = true
 		@player ||= -1
 		@timeout ||= false
-		@paused = true
 
-		minutes.setNr @minutes
-		seconds.setNr @seconds
-		handicap.setNr @handicap
-		number960.setNr @number960
+		# Dessa fyra objekt vill man inte spara i localStorage
+		@settings2bits()
+		# bits.minutes.setNr @bits.minutes
+		# bits.seconds.setNr @bits.seconds
+		# bits.handicap.setNr @bits.handicap
+		# bits.number960.setNr @bits.number960
 
-		console.log minutes,seconds,handicap,number960
+		console.log bits
 		@makeHandicap()
 		@save()
+
+	bits2settings : ->
+		@bits.minutes   = bits.minutes.nr
+		@bits.seconds   = bits.seconds.nr
+		@bits.handicap  = bits.handicap.nr
+		@bits.number960 = bits.number960.nr
+	
+	settings2bits : ->
+		bits.minutes.setNr   @bits.minutes
+		bits.seconds.setNr   @bits.seconds
+		bits.handicap.setNr  @bits.handicap
+		bits.number960.setNr @bits.number960
+
+	backup : ->
+		@bits2settings()
+		backup = clone @ # kopierar TILL backup
+
+	restore : ->
+		Object.assign @,backup # kopierar FRÅN backup
+		@settings2bits()
 
 	tick : ->
 		if @paused then return
@@ -126,41 +159,45 @@ class CSettings
 		d = new Date()
 		if d - lastStorageSave < HEARTBEAT then return # ms
 		lastStorageSave = d
-		@minutes = minutes.nr
-		@seconds = seconds.nr
-		@handicap = handicap.nr 
-		@number960 = number960.nr
+		@bits2settings()
+		# @bits.minutes = bits.minutes.nr
+		# @bits.seconds = bits.seconds.nr
+		# @bits.handicap = bits.handicap.nr 
+		# @bits.number960 = bits.number960.nr
 		localStorage.settings = JSON.stringify @
 
 	compact : ->
 		header0 = ''
 		header1 = ''
-		if minutes.nr > 0 then header0 += minutes.nr
-		if seconds.nr > 0 then header1 += seconds.nr
+		if bits.minutes.nr > 0 then header0 += bits.minutes.nr
+		if bits.seconds.nr > 0 then header1 += bits.seconds.nr
 		header = header0
 		if header1.length > 0 then header += '+' + header1
-		if handicap.nr > 0 then header += "\n(#{handicap.nr})"
+		if bits.handicap.nr > 0 then header += "\n(#{bits.handicap.nr})"
 		header
 
 	makeHandicap : ->
-		hcp = handicap.nr / 60 # 0/60 to 59/60
-		refl  = MINUTE * minutes.nr # tertier
-		bonus =    SEC * seconds.nr # tertier
+		hcp = bits.handicap.nr / 60 # 0/60 to 59/60
+		refl  = MINUTE * bits.minutes.nr # tertier
+		bonus =    SEC * bits.seconds.nr # tertier
 		@players = []
 		@players[0] = [refl + refl*hcp, bonus + bonus*hcp]
 		@players[1] = [refl - refl*hcp, bonus - bonus*hcp]
 
 	ok : ->
-		console.log 'settings.ok'
 		@makeHandicap()
 		@clocks  = [@players[0][0], @players[1][0]]
 		@bonuses = [@players[0][1], @players[1][1]]
+		@bonus = ['+' + pretty(settings.bonuses[0]), '+' + pretty(settings.bonuses[1])]
+		@info.orange = getOrange()
+		@info.white = getWhite()
+		@info.green = getGreen()
 		@timeout = false
 		@paused = true
 		@player = -1
 
 	cancel : -> 
-		Object.assign @, backup
+		@restore()
 		@paused = true
 
 class Control
@@ -283,9 +320,9 @@ class CRotate extends Control
 			secCol = 'grey'
 
 		textSize 18+9
-		mw = textWidth m
-		sw = textWidth d2 2
-
+		mw = tw * m.toString().length
+		sw = tw * 2
+		
 		fill minCol
 		text m, -sw/2, -2
 
@@ -295,10 +332,10 @@ class CRotate extends Control
 		textSize 10
 		if tertier < 10*60 then text t,36,-4
 
-		if handicap.nr > 0 and settings.bonuses[@player] > 0
+		if bits.handicap.nr > 0 and settings.bonuses[@player] > 0
 			textSize 8
 			fill 'grey'
-			text '+' + pretty(settings.bonuses[@player]),0,17
+			text settings.bonus[@player],0,17
 
 		pop()
 
@@ -341,31 +378,28 @@ class CDead extends Control
 		pop()
 
 class CShow extends CDead
-	constructor : (x,y,fg='white') ->
-		super x,y,'',fg
+	constructor : (x,y,fg='white') -> super x,y,'',fg
 	draw : ->
 		push()
 		translate @x,@y
 		rotate -90
-		@text = settings.show
 		fill 'white'
 		textSize 5
-		text settings.show, 0,0
-		#super()
+		text settings.info.white, 0,0
 		pop()
 
 class CColor extends Control
-	constructor : (x,y,@fg,@reader) -> super x,y,0,0
+	constructor : (x,y,@fg) -> super x,y,0,0
 	draw : ->
 		push()
 		textSize 4
 		fill @fg
-		text @reader(),@x,@y
+		text settings.info[@fg],@x,@y
 		pop()
 
 class State
-	constructor : (@name) -> @controls = {}	
-	draw : (key) => @controls[key].draw key for key of @controls
+	constructor : (@name) -> @controls = {}
+	draw : -> @controls[key].draw() for key of @controls
 
 	mouseClicked : ->
 		{x,y} = getLocalCoords()
@@ -404,7 +438,9 @@ class SClock extends State
 		@controls.pause = new CPause  67, 50,  17, 12, 'black', 'white', pause
 		@controls.qr    = new CImage  50, 50,  33, 12, qr, handleQR
 
-		@controls.basic = new CCogwheel 83, 50, 17, 12, 'black', 'white', => currState = states.SBasic
+		@controls.basic = new CCogwheel 83, 50, 17, 12, 'black', 'white', =>
+			settings.backup()
+			currState = states.SBasic
 		@controls.show  = new CShow     22, 50, 'white'
 
 	indicator : ->
@@ -418,7 +454,7 @@ class SClock extends State
 		line 90,andel, 99,andel
 		pop()
 
-	draw : =>
+	draw : ->
 		super()
 		@indicator()
 
@@ -427,16 +463,21 @@ class SBasic extends State
 	constructor : (name) ->
 		super name
 
-		reader  = (bits,text) => bits.nr
-		clicker = (bits,text) => bits.nr = text
+		reader  = (bitar,text) => bitar.nr
+		clicker = (bitar,text) => 
+			bitar.nr = text
+			settings.info.orange = getOrange()
+			settings.info.white  = getWhite()
+			settings.info.green  = getGreen()
+			@controls.ok.visible = bits.minutes.nr > 0 and bits.handicap.nr < 60
 
 		x = [100/3,200/3]
 		y = [32,41,50,59,68,77,86,95]
 		diam = 8
 
-		@controls.orange     = states.SAdv.controls.orange
-		@controls.white      = states.SAdv.controls.white
-		@controls.green      = states.SAdv.controls.green
+		@controls.orange = new CColor 50, 2.5,'orange'# ,getOrange
+		@controls.white  = new CColor 50, 9.5,'white'# , getWhite
+		@controls.green  = new CColor 50,16.5,'green'# , getGreen
 
 		@controls.reflection = new CDead  x[0],20,'reflection'
 		@controls.bonus      = new CDead  x[1],20,'bonus'
@@ -446,15 +487,15 @@ class SBasic extends State
 
 		for i in range 5
 			M = [1,2,3,5,10][i]
-			@controls['M'+M] = new CAdv minutes,i,x[0]-10,y[i], diam, M, false, reader,clicker
+			@controls['M'+M] = new CAdv bits.minutes,i,x[0]-10,y[i], diam, M, false, reader,clicker
 
 		for i in range 6
 			M = [15,20,30,45,60,90][i]
-			@controls['M'+M] = new CAdv minutes,i,x[0]+10,y[i], diam, M, false, reader,clicker
+			@controls['M'+M] = new CAdv bits.minutes,i,x[0]+10,y[i], diam, M, false, reader,clicker
 
 		for i in range 7
 			s = [0,1,2,3,5,10,30][i]
-			@controls['s'+s] = new CAdv seconds,i,x[1],y[i], diam, s, false, reader,clicker
+			@controls['s'+s] = new CAdv bits.seconds,i,x[1],y[i], diam, s, false, reader,clicker
 
 		@controls.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',  true,'white','black'
 		@controls.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv',   false,'white','black',=> currState = states.SAdv
@@ -467,21 +508,9 @@ class SAdv extends State
 	constructor : (name) ->
 		super name
 
-		getOrange = -> 
-			settings.makeHandicap()
-			sp = settings.players
-			if handicap.nr == 0 then '' else prettyPair sp[0][0], sp[0][1]
-
-		getWhite = -> settings.compact()
-
-		getGreen = -> 
-			settings.makeHandicap()
-			sp = settings.players
-			if handicap.nr == 0 then '' else prettyPair sp[1][0], sp[1][1]
-
-		@controls.orange     = new CColor 50, 2.5,'orange', getOrange
-		@controls.white      = new CColor 50, 9.5,'white', getWhite
-		@controls.green      = new CColor 50,16.5,'green', getGreen
+		@controls.orange     = new CColor 50, 2.5,'orange'
+		@controls.white      = new CColor 50, 9.5,'white'
+		@controls.green      = new CColor 50,16.5,'green'
 
 		@controls.reflection = new CDead  25,21,'reflection'
 		@controls.bonus      = new CDead  50,21,'bonus'
@@ -499,10 +528,13 @@ class SAdv extends State
 
 	makeEditButtons : ->
 
-		reader = (bits,index) => bits.pattern[index]
-		clicker = (bits,index) =>
-			bits.flipBit index
-			@controls.ok.visible = minutes.nr > 0 and handicap.nr < 60
+		reader = (bitar,index) => bitar.pattern[index]
+		clicker = (bitar,index) =>
+			bitar.flipBit index
+			settings.info.orange = getOrange()
+			settings.info.white  = getWhite()
+			settings.info.green  = getGreen()
+			@controls.ok.visible = bits.minutes.nr > 0 and bits.handicap.nr < 60
 
 		for i in range 3
 			letter = 'Mst'[i]
@@ -516,20 +548,21 @@ class SAdv extends State
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@controls[name] = new CAdv [minutes,seconds,handicap][i], j, xoff+xsize*i, yoff+ysize*j, diam, number, true, reader, clicker
+					@controls[name] = new CAdv [bits.minutes,bits.seconds,bits.handicap][i], j, xoff+xsize*i, yoff+ysize*j, diam, number, true, reader, clicker
 
 
 class S960 extends State
 	constructor : (name) ->
 		super name
 		reader960 = (bits,index) => bits.pattern[index]
-		click960 = (bits,index) =>
-			bits.flipBit index
-			settings.chess960 = chess960 number960.nr
+		click960 = (bitar,index) =>
+			bitar.flipBit index
+			settings.chess960 = chess960 bits.number960.nr
+			@controls.ok.visible = bits.number960.nr < 960
 
 		random960 = ->
 			nr = _.random 0,959
-			number960.setNr nr
+			bits.number960.setNr nr
 			settings.chess960 = chess960 nr
 
 		x = [100/4,200/4,300/4]
@@ -537,14 +570,14 @@ class S960 extends State
 		diam = 10
 
 		@controls.C960    = new C960    50,y[0], 100, 10
-		@controls.CNumber = new CNumber 50,25, () -> number960.nr
+		@controls.CNumber = new CNumber 50,25, => bits.number960.nr
 
-		for i in range number960.lst.length
-			number = number960.lst[i]
+		for i in range bits.number960.lst.length
+			number = bits.number960.lst[i]
 			key    = 'R'+number
 			xi     = [0,0,0,0,1,1,1,2,2,2][i]
 			yi     = [1,2,3,4,1,2,3,1,2,3][i]
-			@controls[key] = new CAdv number960, i, x[xi],y[yi], diam, number, true, reader960, click960
+			@controls[key] = new CAdv bits.number960, i, x[xi],y[yi], diam, number, true, reader960, click960
 
 		@controls.random = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random', false, 'white','black',random960
 		@controls.basic  = new CRounded 10,y[7], 18,6, 'basic', false,'white','black',=> currState = states.SBasic
@@ -596,6 +629,14 @@ setup = ->
 	createState 'S960',S960
 	
 	currState = states.SClock
+
+	push()
+	textSize 18+9
+	tw = textWidth '0'
+	console.log tw
+	console.log textWidth '00'
+	console.log textWidth '123'
+	pop()
 
 mousePressed = -> if os == 'Windows' then currState.mouseClicked()
 touchStarted = -> if os != 'Windows' then currState.mouseClicked()
