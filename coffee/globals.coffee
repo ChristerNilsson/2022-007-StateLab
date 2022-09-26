@@ -1,3 +1,8 @@
+assert = (a,b) ->
+	a = JSON.stringify a 
+	b = JSON.stringify b
+	console.log if a==b then "ok" else "#{a} != #{b}"
+
 export globals = {}
 
 globals.HOUR   = 60*60*60 # tertier

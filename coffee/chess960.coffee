@@ -4,10 +4,10 @@
 
 # https://chess-tigers.de/download/chess960_regeln.pdf?PHPSESSID=d71dfe17e7e8aae16adce6f8fb284410
 
-# assert = (a,b) ->
-# 	a = JSON.stringify a 
-# 	b = JSON.stringify b
-# 	console.log if a==b then "ok" else "#{a} != #{b}"
+assert = (a,b) ->
+	a = JSON.stringify a 
+	b = JSON.stringify b
+	if a!=b then console.log "#{a} != #{b}"
 
 export chess960 = (index) -> # 16 microsecs
 	[Q,N,B,X] = 'QNB_'
