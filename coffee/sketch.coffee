@@ -305,7 +305,7 @@ class SBasic extends State
 
 		reader  = (bitar,text) => bitar.nr
 		clicker = (bitar,text) => 
-			bitar.nr = text
+			bitar.setNr text
 			g = globals
 			gb = g.bits
 			gs = g.settings
@@ -374,7 +374,7 @@ class SAdv extends State
 
 	makeEditButtons : ->
 
-		reader = (bitar,index) => bitar.pattern[index]
+		reader = (bits,index) => bits.pattern[index] # bitar
 		clicker = (bitar,index) =>
 			bitar.flipBit index
 			g = globals
@@ -408,6 +408,7 @@ class S960 extends State
 		click960 = (bitar,index) =>
 			bitar.flipBit index
 			gb = globals.bits
+			console.log gb.number960.nr
 			globals.settings.chess960 = chess960 gb.number960.nr
 			@controls.ok.visible = gb.number960.nr < 960
 
