@@ -3,11 +3,11 @@
 
 # Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
-import {globals,clone,getLocalCoords,createState,pretty,prettyPair,d2,mst} from '/js/globals.js'
-import {getOrange, getWhite, getGreen} from '/js/globals.js'
-import {CBits} from '/js/cbits.js'
-import {chess960} from '/js/chess960.js'
-import {CSettings} from '/js/settings.js'
+import {globals,clone,getLocalCoords,createState,pretty,prettyPair,d2,mst} from './globals.js'
+import {getOrange, getWhite, getGreen} from './globals.js'
+import {CBits} from './cbits.js'
+import {chess960} from './chess960.js'
+import {CSettings} from './settings.js'
 
 globals.bits = {}
 globals.bits.minutes   = new CBits [1,2,4,8,15,30,60]

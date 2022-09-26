@@ -1,5 +1,5 @@
-import {globals,clone,getLocalCoords,createState,pretty,prettyPair,d2,mst} from '/js/globals.js'
-import {getOrange,getWhite,getGreen} from '/js/globals.js'
+import {globals,clone,getLocalCoords,createState,pretty,prettyPair,d2,mst} from './globals.js'
+import {getOrange,getWhite,getGreen} from './globals.js'
 
 export class CSettings 
 	constructor : -> 
