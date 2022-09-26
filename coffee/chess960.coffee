@@ -27,7 +27,7 @@ assert    'RNKNR', fillIn N, [1,3], 'RKR'
 assert   'RNQKNR', fillIn Q, [2],   'RNKNR'
 assert 'RNBQKBNR', fillIn B, [2,5], 'RNQKNR'
 
-chess960 = (i) -> # 16 microsecs
+export chess960 = (i) -> # 16 microsecs
 	q  = i // 16 % 6
 	n0 = N0[i // 96 % 10]
 	n1 = N1[i // 96 % 10]

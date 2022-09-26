@@ -1,4 +1,4 @@
-class CBits
+export class CBits
 	constructor : (@lst,@nr=0) -> 
 		@pattern = _.map @lst, -> 0
 		@setNr @nr

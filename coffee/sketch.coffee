@@ -3,26 +3,19 @@
 
 # Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
-HOUR   = 60*60*60 # tertier
-MINUTE = 60*60    # tertier
-SEC    = 60       # tertier
+import {globals,clone,getLocalCoords,createState,pretty,prettyPair,d2,mst} from '/js/globals.js'
+import {getOrange, getWhite, getGreen} from '/js/globals.js'
+import {CBits} from '/js/cbits.js'
+import {chess960} from '/js/chess960.js'
+import {CSettings} from '/js/settings.js'
 
-TOGGLE = 1 # 0=porträtt (Android) 1=landskap (Mac)
-HEARTBEAT = 1000 # ms updates of localStorage
-
-FRAMERATE = 60 # 10
-
-settings  = {}
-bits = {}
-bits.minutes   = new CBits [1,2,4,8,15,30,60]
-bits.seconds   = new CBits [1,2,4,8,15,30,60]
-bits.handicap  = new CBits [1,2,4,8,15,30]
-bits.number960 = new CBits [1,2,4,8,15,30,60,120,240,480]
+globals.bits = {}
+globals.bits.minutes   = new CBits [1,2,4,8,15,30,60]
+globals.bits.seconds   = new CBits [1,2,4,8,15,30,60]
+globals.bits.handicap  = new CBits [1,2,4,8,15,30]
+globals.bits.number960 = new CBits [1,2,4,8,15,30,60,120,240,480]
 
 tw = 0
-
-backup = null
-states = {}
 
 qr = null
 chess = {}
@@ -37,168 +30,13 @@ sumRate = 0
 
 diag = 0 
 
-getLocalCoords = ->
-	matrix = drawingContext.getTransform()
-	pd = pixelDensity()
-	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
-
-createState = (key,klass) -> states[key] = new klass key
-
-pretty = (tot) ->
-	tot = Math.round tot
-	t = tot %% 60
-	tot //= 60
-	s = tot %% 60
-	m = tot // 60
-	header = ''
-	if m > 0 then header += m + 'm'
-	if s > 0 then header += s + 's'
-	if t > 0 then header += t + 't'
-	header
-assert '1m1t', pretty 3601
-assert '2s3t', pretty 123
-assert '60m30s', pretty 60*60*60+30*60
-
-prettyPair = (a,b) -> 
-	separator = if pretty(b) != '' then ' + ' else ''
-	pretty(a) + separator + pretty(b)
-assert '1m1t + 2s3t', prettyPair 3601,123
-
-d2 = (x) ->
-	x = Math.trunc x
-	if x < 10 then '0'+x else x
-assert '03', d2 3
-
-mst = (x) -> # tertier
-	t = x %% 60
-	x //= 60
-	s = x %% 60
-	m = x // 60
-	[m,s,t] 
-assert [3,0,0], mst 3*60*60
-assert [3,0,30], mst 180*60+30
-
-clone = (x) -> JSON.parse JSON.stringify x
-
-getOrange = ->
-	settings.makeHandicap()
-	sp = settings.players
-	if bits.handicap.nr == 0 then '' else prettyPair sp[0][0], sp[0][1]
-
-getWhite = -> settings.compact()
-
-getGreen = -> 
-	settings.makeHandicap()
-	sp = settings.players
-	if bits.handicap.nr == 0 then '' else prettyPair sp[1][0], sp[1][1]
-
 cancel = =>
-	settings.cancel()
-	currState = states.SClock
+	globals.settings.cancel()
+	currState = globals.states.SClock
 
 ok = =>
-	settings.ok()
-	currState = states.SClock
-
-class CSettings
-	constructor : -> 
-		console.log if localStorage.settings then "load" else "default"
-		if localStorage.settings then Object.assign @, JSON.parse localStorage.settings
-		@bits ||= {minutes:3, seconds:2, handicap:0, number960:518}
-		@bonus ||= ['',''] # redundant, sparar tid
-		@bonuses ||= [2*60,2*60] # tertier, redundant, sparar tid
-		@chess960 ||= 'RNBQKBNR' # redundant, sparar tid
-		@clocks ||= [180*60,180*60] # tertier
-		@info ||= {orange:'', white:'3+2', green:''} # redundant, sparar tid
-		@paused = true
-		@player ||= -1
-		@timeout ||= false
-
-		# Dessa fyra objekt vill man inte spara i localStorage
-		@settings2bits()
-		# bits.minutes.setNr @bits.minutes
-		# bits.seconds.setNr @bits.seconds
-		# bits.handicap.setNr @bits.handicap
-		# bits.number960.setNr @bits.number960
-
-		console.log bits
-		@makeHandicap()
-		@save()
-
-	bits2settings : ->
-		@bits.minutes   = bits.minutes.nr
-		@bits.seconds   = bits.seconds.nr
-		@bits.handicap  = bits.handicap.nr
-		@bits.number960 = bits.number960.nr
-	
-	settings2bits : ->
-		bits.minutes.setNr   @bits.minutes
-		bits.seconds.setNr   @bits.seconds
-		bits.handicap.setNr  @bits.handicap
-		bits.number960.setNr @bits.number960
-
-	backup : ->
-		@bits2settings()
-		backup = clone @ # kopierar TILL backup
-
-	restore : ->
-		Object.assign @,backup # kopierar FRÅN backup
-		@settings2bits()
-
-	tick : ->
-		if @paused then return
-		c = @clocks[@player]
-		if c > 0 then c -= 60/frameRate()
-		if c <= 0
-			c = 0
-			@timeout = true
-			@paused = true
-		@clocks[@player] = c
-
-	save : ->
-		d = new Date()
-		if d - lastStorageSave < HEARTBEAT then return # ms
-		lastStorageSave = d
-		@bits2settings()
-		# @bits.minutes = bits.minutes.nr
-		# @bits.seconds = bits.seconds.nr
-		# @bits.handicap = bits.handicap.nr 
-		# @bits.number960 = bits.number960.nr
-		localStorage.settings = JSON.stringify @
-
-	compact : ->
-		header0 = ''
-		header1 = ''
-		if bits.minutes.nr > 0 then header0 += bits.minutes.nr
-		if bits.seconds.nr > 0 then header1 += bits.seconds.nr
-		header = header0
-		if header1.length > 0 then header += '+' + header1
-		if bits.handicap.nr > 0 then header += "\n(#{bits.handicap.nr})"
-		header
-
-	makeHandicap : ->
-		hcp = bits.handicap.nr / 60 # 0/60 to 59/60
-		refl  = MINUTE * bits.minutes.nr # tertier
-		bonus =    SEC * bits.seconds.nr # tertier
-		@players = []
-		@players[0] = [refl + refl*hcp, bonus + bonus*hcp]
-		@players[1] = [refl - refl*hcp, bonus - bonus*hcp]
-
-	ok : ->
-		@makeHandicap()
-		@clocks  = [@players[0][0], @players[1][0]]
-		@bonuses = [@players[0][1], @players[1][1]]
-		@bonus = ['+' + pretty(settings.bonuses[0]), '+' + pretty(settings.bonuses[1])]
-		@info.orange = getOrange()
-		@info.white = getWhite()
-		@info.green = getGreen()
-		@timeout = false
-		@paused = true
-		@player = -1
-
-	cancel : -> 
-		@restore()
-		@paused = true
+	globals.settings.ok()
+	currState = globals.states.SClock
 
 class Control
 	constructor : (@x,@y,@w,@h,@text='',@bg='black',@fg='white') ->
@@ -209,7 +47,7 @@ class Control
 		# @h = Math.round @h
 	draw : -> console.log 'Control.draw must be overriden!'
 	inside : (x,y) ->
-		w = @w * [height/width,width/height][1-TOGGLE]
+		w = @w * [height/width,width/height][1-globals.TOGGLE]
 		-w/2 <= x-@x <= w/2 and -@h/2 <= y-@y <= @h/2
 
 class CNumber extends Control
@@ -235,10 +73,10 @@ class C960 extends Control
 	draw : ->
 		if @visible
 			dx = 12
-			w = @h * [height/width,width/height][TOGGLE]
+			w = @h * [height/width,width/height][globals.TOGGLE]
 			xoff = @x + (dx-w)/2
 			for i in range 8
-				image chess[settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
+				image chess[globals.settings.chess960[i]], xoff+(i-4)*dx, @y+8, w,@h
 
 class CRounded extends Control
 	constructor : (x,y,w,h,text='',@disabled=false,bg='white',fg='black', @clicker=null) ->
@@ -259,7 +97,7 @@ class CPause extends Control
 		super x,y,w,h
 	click : => @clicker()
 	draw : ->
-		if not settings.paused
+		if not globals.settings.paused
 			fill @fg
 			rect @x-1.75,@y,3,6
 			rect @x+1.75,@y,3,6
@@ -268,10 +106,10 @@ class CCogwheel extends Control # Kugghjul
 	constructor : (x,y,w=0,h=0,@bg='black',@fg='white',@clicker) -> super x,y,w,h
 	click : => @clicker()
 	draw : ->
-		if settings.paused
+		if globals.settings.paused
 			push()
 			translate @x,@y
-			scale [height/width,width/height][TOGGLE],1
+			scale [height/width,width/height][globals.TOGGLE],1
 			fill @fg
 			circle 0,0,6
 			fill @bg
@@ -292,7 +130,7 @@ class CImage extends Control
 	click : => @clicker()
 	draw :  ->
 		if @image
-			w = @h * [height/width,width/height][TOGGLE]
+			w = @h * [height/width,width/height][globals.TOGGLE]
 			image @image,@x-w/2, 0.075+@y-@h/2, w, @h
 
 class CRotate extends Control
@@ -302,7 +140,7 @@ class CRotate extends Control
 	click : => @clicker()
 
 	draw : ->
-		tertier = settings.clocks[@player]
+		tertier = globals.settings.clocks[@player]
 		[m,s,t] = mst tertier
 		t = Math.round t
 		ss = m + ':' + d2 s
@@ -312,9 +150,9 @@ class CRotate extends Control
 		translate @x,@y
 		rotate @degrees
 
-		if settings.player == @player
+		if globals.settings.player == @player
 			minCol = 'red'
-			secCol = if settings.timeout then 'red' else 'white'
+			secCol = if globals.settings.timeout then 'red' else 'white'
 		else
 			minCol = 'lightgrey'
 			secCol = 'grey'
@@ -332,10 +170,10 @@ class CRotate extends Control
 		textSize 10
 		if tertier < 10*60 then text t,36,-4
 
-		if bits.handicap.nr > 0 and settings.bonuses[@player] > 0
+		if globals.bits.handicap.nr > 0 and globals.settings.bonuses[@player] > 0
 			textSize 8
 			fill 'grey'
-			text settings.bonus[@player],0,17
+			text globals.settings.bonus[@player],0,17
 
 		pop()
 
@@ -351,7 +189,7 @@ class CAdv extends Control
 			fill if 1 == @reader() then 'yellow' else 'gray'
 		else 
 			fill 'gray'
-		s = [height/width,width/height][TOGGLE]
+		s = [height/width,width/height][globals.TOGGLE]
 		ellipse 0,0,@w*s,@h
 		fill 'black'
 		textSize 5
@@ -359,7 +197,7 @@ class CAdv extends Control
 		pop()
 
 	inside : (x,y) ->
-		s = [height/width,width/height][TOGGLE]
+		s = [height/width,width/height][globals.TOGGLE]
 		w = @w * s
 		h = @h
 		-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
@@ -385,7 +223,7 @@ class CShow extends CDead
 		rotate -90
 		fill 'white'
 		textSize 5
-		text settings.info.white, 0,0
+		text globals.settings.info.white, 0,0
 		pop()
 
 class CColor extends Control
@@ -394,7 +232,7 @@ class CColor extends Control
 		push()
 		textSize 4
 		fill @fg
-		text settings.info[@fg],@x,@y
+		text globals.settings.info[@fg],@x,@y
 		pop()
 
 class State
@@ -410,25 +248,27 @@ class State
 				break
 
 handlePlayer = (player) ->
-	if settings.timeout then return
-	if settings.paused 
+	g = globals
+	gs = g.settings
+	if gs.timeout then return
+	if gs.paused 
 		sound.play()
-	else if settings.player == -1
+	else if gs.player == -1
 		sound.play()
-	else if settings.player == player
+	else if gs.player == player
 		sound.play()
-		settings.clocks[player] += settings.bonuses[player]
-	settings.paused = false
-	settings.player = 1-player
+		gs.clocks[player] += gs.bonuses[player]
+	gs.paused = false
+	gs.player = 1-player
 
 class SClock extends State
 
 	constructor : (name) ->
 		super name
 
-		player0 = => if settings.timeout then return else handlePlayer 0
-		player1 = => if settings.timeout then return else handlePlayer 1
-		pause   = => settings.paused = true
+		player0 = => if globals.settings.timeout then return else handlePlayer 0
+		player1 = => if globals.settings.timeout then return else handlePlayer 1
+		pause   = => globals.settings.paused = true
 		handleQR = =>
 			fullscreen true
 			resizeCanvas innerWidth, innerHeight
@@ -439,13 +279,13 @@ class SClock extends State
 		@controls.qr    = new CImage  50, 50,  33, 12, qr, handleQR
 
 		@controls.basic = new CCogwheel 83, 50, 17, 12, 'black', 'white', =>
-			settings.backup()
-			currState = states.SBasic
+			globals.settings.backup()
+			currState = globals.states.SBasic
 		@controls.show  = new CShow     22, 50, 'white'
 
 	indicator : ->
-		a = settings.clocks[0]
-		b = settings.clocks[1]
+		a = globals.settings.clocks[0]
+		b = globals.settings.clocks[1]
 		andel = 100 * a/(a+b)
 		push()
 		strokeWeight 1
@@ -466,10 +306,14 @@ class SBasic extends State
 		reader  = (bitar,text) => bitar.nr
 		clicker = (bitar,text) => 
 			bitar.nr = text
-			settings.info.orange = getOrange()
-			settings.info.white  = getWhite()
-			settings.info.green  = getGreen()
-			@controls.ok.visible = bits.minutes.nr > 0 and bits.handicap.nr < 60
+			g = globals
+			gb = g.bits
+			gs = g.settings
+			gsi = gs.info
+			gsi.orange = getOrange()
+			gsi.white  = getWhite()
+			gsi.green  = getGreen()
+			@controls.ok.visible = gb.minutes.nr > 0 and gb.handicap.nr < 60
 
 		x = [100/3,200/3]
 		y = [32,41,50,59,68,77,86,95]
@@ -485,21 +329,23 @@ class SBasic extends State
 		@controls.M          = new CDead  x[0], 25, 'minutes'
 		@controls.s          = new CDead  x[1], 25, 'seconds'
 
+		gbm = globals.bits.minutes
 		for i in range 5
 			M = [1,2,3,5,10][i]
-			@controls['M'+M] = new CAdv bits.minutes,i,x[0]-10,y[i], diam, M, false, reader,clicker
+			@controls['M'+M] = new CAdv gbm,i,x[0]-10,y[i], diam, M, false, reader,clicker
 
 		for i in range 6
 			M = [15,20,30,45,60,90][i]
-			@controls['M'+M] = new CAdv bits.minutes,i,x[0]+10,y[i], diam, M, false, reader,clicker
+			@controls['M'+M] = new CAdv gbm,i,x[0]+10,y[i], diam, M, false, reader,clicker
 
+		gbs = globals.bits.seconds
 		for i in range 7
 			s = [0,1,2,3,5,10,30][i]
-			@controls['s'+s] = new CAdv bits.seconds,i,x[1],y[i], diam, s, false, reader,clicker
+			@controls['s'+s] = new CAdv gbs,i,x[1],y[i], diam, s, false, reader,clicker
 
 		@controls.basic      = new CRounded 1*100/10,y[7], 18,6, 'basic',  true,'white','black'
-		@controls.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv',   false,'white','black',=> currState = states.SAdv
-		@controls.b960       = new CRounded 5*100/10,y[7], 18,6, '960',   false,'white','black',=> currState = states.S960
+		@controls.adv        = new CRounded 3*100/10,y[7], 18,6, 'adv',   false,'white','black',=> currState = globals.states.SAdv
+		@controls.b960       = new CRounded 5*100/10,y[7], 18,6, '960',   false,'white','black',=> currState = globals.states.S960
 		@controls.cancel     = new CRounded 7*100/10,y[7], 18,6, 'cancel',false,'white','black',cancel
 		@controls.ok         = new CRounded 9*100/10,y[7], 18,6, 'ok',    false,'white','black',ok
 
@@ -518,9 +364,9 @@ class SAdv extends State
 
 		y = 95
 
-		@controls.basic      = new CRounded 1*100/10,y, 18,6, 'basic', false,'white','black',=> currState = states.SBasic
+		@controls.basic      = new CRounded 1*100/10,y, 18,6, 'basic', false,'white','black',=> currState = globals.states.SBasic
 		@controls.adv        = new CRounded 3*100/10,y, 18,6, 'adv',    true,'white','black'
-		@controls.b960       = new CRounded 5*100/10,y, 18,6, '960',   false,'white','black',=> currState = states.S960
+		@controls.b960       = new CRounded 5*100/10,y, 18,6, '960',   false,'white','black',=> currState = globals.states.S960
 		@controls.cancel     = new CRounded 7*100/10,y, 18,6, 'cancel',false,'white','black',cancel
 		@controls.ok         = new CRounded 9*100/10,y, 18,6, 'ok',    false,'white','black',ok
 
@@ -531,10 +377,13 @@ class SAdv extends State
 		reader = (bitar,index) => bitar.pattern[index]
 		clicker = (bitar,index) =>
 			bitar.flipBit index
-			settings.info.orange = getOrange()
-			settings.info.white  = getWhite()
-			settings.info.green  = getGreen()
-			@controls.ok.visible = bits.minutes.nr > 0 and bits.handicap.nr < 60
+			g = globals
+			gs = g.settings
+			gsi = gs.info
+			gsi.orange = getOrange()
+			gsi.white  = getWhite()
+			gsi.green  = getGreen()
+			@controls.ok.visible = g.bits.minutes.nr > 0 and g.bits.handicap.nr < 60
 
 		for i in range 3
 			letter = 'Mst'[i]
@@ -543,12 +392,13 @@ class SAdv extends State
 			xoff = xsize
 			yoff = 33+2
 			diam = 7
+			gb = globals.bits
 			@controls[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
 			for j in range 7
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
 				if i!=2 or j!=6
-					@controls[name] = new CAdv [bits.minutes,bits.seconds,bits.handicap][i], j, xoff+xsize*i, yoff+ysize*j, diam, number, true, reader, clicker
+					@controls[name] = new CAdv [gb.minutes,gb.seconds,gb.handicap][i], j, xoff+xsize*i, yoff+ysize*j, diam, number, true, reader, clicker
 
 
 class S960 extends State
@@ -557,51 +407,53 @@ class S960 extends State
 		reader960 = (bits,index) => bits.pattern[index]
 		click960 = (bitar,index) =>
 			bitar.flipBit index
-			settings.chess960 = chess960 bits.number960.nr
-			@controls.ok.visible = bits.number960.nr < 960
+			gb = globals.bits
+			globals.settings.chess960 = chess960 gb.number960.nr
+			@controls.ok.visible = gb.number960.nr < 960
 
 		random960 = ->
 			nr = _.random 0,959
-			bits.number960.setNr nr
-			settings.chess960 = chess960 nr
+			globals.bits.number960.setNr nr
+			globals.settings.chess960 = chess960 nr
 
 		x = [100/4,200/4,300/4]
 		y = [-5,40,52,64,76,78,90,95]
 		diam = 10
 
 		@controls.C960    = new C960    50,y[0], 100, 10
-		@controls.CNumber = new CNumber 50,25, => bits.number960.nr
+		@controls.CNumber = new CNumber 50,25, => globals.bits.number960.nr
 
-		for i in range bits.number960.lst.length
-			number = bits.number960.lst[i]
+		gbn = globals.bits.number960
+		for i in range gbn.lst.length
+			number = gbn.lst[i]
 			key    = 'R'+number
 			xi     = [0,0,0,0,1,1,1,2,2,2][i]
 			yi     = [1,2,3,4,1,2,3,1,2,3][i]
-			@controls[key] = new CAdv bits.number960, i, x[xi],y[yi], diam, number, true, reader960, click960
+			@controls[key] = new CAdv gbn, i, x[xi],y[yi], diam, number, true, reader960, click960
 
 		@controls.random = new CRounded (x[1]+x[2])/2,y[4], 18,6, 'random', false, 'white','black',random960
-		@controls.basic  = new CRounded 10,y[7], 18,6, 'basic', false,'white','black',=> currState = states.SBasic
-		@controls.adv    = new CRounded 30,y[7], 18,6, 'adv',   false,'white','black',=> currState = states.SAdv
+		@controls.basic  = new CRounded 10,y[7], 18,6, 'basic', false,'white','black',=> currState = globals.states.SBasic
+		@controls.adv    = new CRounded 30,y[7], 18,6, 'adv',   false,'white','black',=> currState = globals.states.SAdv
 		@controls.b960   = new CRounded 50,y[7], 18,6, '960',    true,'white','black'
 		@controls.cancel = new CRounded 70,y[7], 18,6, 'cancel',false,'white','black',cancel
 		@controls.ok     = new CRounded 90,y[7], 18,6, 'ok',    false,'white','black',ok
 
-###################################
+################ p5 ###################
 
-preload = ->
+window.preload = ->
 	qr = loadImage 'qr.png'
 	sound = loadSound 'key.mp3'
 	for ltr in "KQRBN"
 		chess[ltr] = loadImage "chess\\#{ltr}.png"
 
-windowResized = ->
+window.windowResized = ->
 	resizeCanvas innerWidth, innerHeight
 	diag = sqrt width*width + height*height
 
-setup = ->
-	settings = new CSettings
+window.setup = ->
+	globals.settings = new CSettings globals.bits
 
-	frameRate FRAMERATE
+	frameRate globals.FRAMERATE
 	os = navigator.appVersion
 	if os.indexOf('Linux') >= 0 then os = 'Android'
 	if os.indexOf('Windows') >= 0 then os = 'Windows'
@@ -614,7 +466,7 @@ setup = ->
 	if os == 'Mac' then textFont 'Verdana'
 	if os == 'Windows' then textFont 'Lucida Sans Unicode'
 
-	TOGGLE = if os == 'Mac' then 1 else 0
+	globals.TOGGLE = if os == 'Mac' then 1 else 0
 
 	diag = sqrt width*width + height*height
 
@@ -628,22 +480,19 @@ setup = ->
 	createState 'SBasic',SBasic
 	createState 'S960',S960
 	
-	currState = states.SClock
+	currState = globals.states.SClock
 
 	push()
 	textSize 18+9
 	tw = textWidth '0'
-	console.log tw
-	console.log textWidth '00'
-	console.log textWidth '123'
 	pop()
 
-mousePressed = -> if os == 'Windows' then currState.mouseClicked()
-touchStarted = -> if os != 'Windows' then currState.mouseClicked()
+window.mousePressed = -> if os == 'Windows' then currState.mouseClicked()
+window.touchStarted = -> if os != 'Windows' then currState.mouseClicked()
 
-draw = ->
+window.draw = ->
 
-	if TOGGLE == 0
+	if globals.TOGGLE == 0
 		scale width/100,height/100 # portrait
 	else
 		rotate 90
@@ -653,11 +502,11 @@ draw = ->
 	strokeWeight 100/height
 	push()
 	background 'black'
-	settings.tick()
+	globals.settings.tick()
 	currState.draw()
 	pop()
 
-	settings.save()
+	globals.settings.save()
 
 	aspect = (w,h,y) ->
 		if w < h then [w,h] = [h,w]
