@@ -20,6 +20,10 @@ globals.currState = null
 globals.diag = 0
 globals.os = ''
 globals.chess = null
+globals.logg = []
+
+export logg = (prompt,value='') ->
+	globals.logg.push "#{prompt} #{JSON.stringify value}"
 
 export clone = (x) -> JSON.parse JSON.stringify x
 

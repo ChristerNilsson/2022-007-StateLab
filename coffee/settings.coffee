@@ -1,10 +1,10 @@
-import {globals,clone,pretty} from './globals.js'
+import {globals,clone,pretty,logg} from './globals.js'
 import {getOrange,getWhite,getGreen} from './globals.js'
 
 export class CSettings 
 	constructor : -> 
-		console.log if localStorage.settings then "load" else "default"
-		if localStorage.settings then Object.assign @, JSON.parse localStorage.settings
+		console.log if localStorage.settings then logg "load" else logg "default"
+		if localStorage.settings then Object.assign @, {} #JSON.parse localStorage.settings
 		@bits ||= {minutes:3, seconds:2, handicap:0, number960:518}
 		@bonus ||= ['',''] # redundant, sparar tid
 		@bonuses ||= [2*60,2*60] # tertier, redundant, sparar tid
@@ -14,6 +14,7 @@ export class CSettings
 		@paused = true
 		@player ||= -1
 		@timeout ||= false
+		logg "bits",@bits
 
 		# Dessa fyra objekt vill man inte spara i localStorage
 		@settings2bits()
@@ -33,6 +34,9 @@ export class CSettings
 		gb.seconds.setNr   @bits.seconds
 		gb.handicap.setNr  @bits.handicap
 		gb.number960.setNr @bits.number960
+		logg 'minutes', gb.minutes.nr
+		logg 'seconds', gb.seconds.nr
+		logg 'handicap', gb.handicap.nr
 
 	backup : ->
 		@bits2settings()

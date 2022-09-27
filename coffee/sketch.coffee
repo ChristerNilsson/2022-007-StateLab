@@ -91,13 +91,20 @@ window.draw = ->
 		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	textSize 5
+	textSize 3
 	fill 'yellow'
+	gb = globals.bits
 	gs = globals.settings
-	text "mst #{gs.bits.minutes} #{gs.bits.seconds} #{gs.bits.handicap}",50,5
-	text gs.players,50,10
-	text Math.round(gs.clocks[0]) + ' ' + Math.round(gs.clocks[1]),50,40
-	text gs.bonuses,50,60
-	text gs.info.orange,50,75
-	text gs.info.white,50,85
-	text gs.info.green,50,95
+	gsi = gs.info
+	text "mst #{gb.minutes.nr} #{gb.seconds.nr} #{gb.handicap.nr}",50,60
+	text gs.players,50,65
+	text Math.round(gs.clocks[0]) + ' ' + Math.round(gs.clocks[1]),50,70
+	text gs.bonuses,50,75
+	text gsi.orange,50,80
+	text gsi.white,50,85
+	text gsi.green,50,90
+
+	for i in range globals.logg.length
+		text globals.logg[i],50,3*(i+1)
+
+	text 'I',5,95
