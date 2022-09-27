@@ -90,3 +90,14 @@ window.draw = ->
 	aspect = (w,h,y) ->
 		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
+
+	textSize 5
+	fill 'yellow'
+	gs = globals.settings
+	text "mst #{gs.bits.minutes} #{gs.bits.seconds} #{gs.bits.handicap}",50,5
+	text gs.players,50,10
+	text Math.round(gs.clocks[0]) + ' ' + Math.round(gs.clocks[1]),50,40
+	text gs.bonuses,50,60
+	text gs.info.orange,50,75
+	text gs.info.white,50,85
+	text gs.info.green,50,95
