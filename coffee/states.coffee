@@ -184,7 +184,7 @@ export class S960 extends State
 		click960 = (bitar,index) =>
 			bitar.flipBit index
 			gb = globals.bits
-			console.log gb.number960.nr
+			# console.log gb.number960.nr
 			globals.settings.chess960 = chess960 gb.number960.nr
 			@controls.ok.visible = gb.number960.nr < 960
 
