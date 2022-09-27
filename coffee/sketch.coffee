@@ -85,14 +85,14 @@ window.draw = ->
 	globals.currState.draw()
 	pop()
 
-	#globals.settings.save()
+	globals.settings.save() # SKUM?
 
 	aspect = (w,h,y) ->
 		if w < h then [w,h] = [h,w]
 		text "#{w} #{(w/h).toFixed(3)} #{h}", 50,y
 
-	textSize 3
-	fill 'yellow'
+	#textSize 3
+	#fill 'yellow'
 	# gb = globals.bits
 	# gs = globals.settings
 	# gsi = gs.info
@@ -107,4 +107,4 @@ window.draw = ->
 	#for i in range globals.logg.length
 	#	text globals.logg[i],50,3*(i+1)
 
-	text 'J',5,95
+	#text 'J',5,95

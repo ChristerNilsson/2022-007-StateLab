@@ -91,7 +91,7 @@ export class SBasic extends State
 			gsi.green  = getGreen()
 			@controls.ok.visible = gb.minutes.nr > 0 and gb.handicap.nr < 60
 
-		x = [100/3,200/3]
+		x = [100/3,80]
 		y = [32,41,50,59,68,77,86,95]
 		diam = 8
 
