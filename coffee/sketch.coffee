@@ -3,7 +3,7 @@
 
 # Istället för sekunder är nu normalformen tertier, 60-dels sekunder
 
-import {globals,createState} from './globals.js'
+import {globals} from './globals.js'
 import {CBits} from './cbits.js'
 import {CSettings} from './settings.js'
 import {SClock,SBasic,SAdv,S960} from './states.js'
@@ -20,6 +20,8 @@ lastStorageSave = new Date()
 
 rates = []
 sumRate = 0
+
+createState = (key,klass) -> globals.states[key] = new klass key
 
 ################ p5 ###################
 

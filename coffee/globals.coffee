@@ -25,15 +25,6 @@ globals.logg = []
 export logg = (prompt,value='') ->
 	globals.logg.push "#{prompt} #{JSON.stringify value}"
 
-export clone = (x) -> JSON.parse JSON.stringify x
-
-export getLocalCoords = ->
-	matrix = drawingContext.getTransform()
-	pd = pixelDensity()
-	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
-
-export createState = (key,klass) -> globals.states[key] = new klass key
-
 export pretty = (tot) ->
 	tot = Math.round tot
 	t = tot %% 60

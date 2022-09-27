@@ -1,5 +1,7 @@
-import {globals,clone,pretty,logg} from './globals.js'
+import {globals,pretty,logg} from './globals.js'
 import {getOrange,getWhite,getGreen} from './globals.js'
+
+clone = (x) -> JSON.parse JSON.stringify x
 
 export class CSettings 
 	constructor : -> 

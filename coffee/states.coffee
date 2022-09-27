@@ -1,6 +1,14 @@
-import {globals,getLocalCoords,getOrange,getWhite,getGreen} from './globals.js'
+# State motsvara ett formulär. Här skapas alla kontroller och alla click-händelser definieras.
+
+
+import {globals,getOrange,getWhite,getGreen} from './globals.js'
 import {chess960} from './chess960.js'
 import {CRotate,CPause,CImage,CCogwheel,CShow,CColor,CDead,CRounded,CAdv,C960,CNumber} from './controls.js'
+
+getLocalCoords = ->
+	matrix = drawingContext.getTransform()
+	pd = pixelDensity()
+	matrix.inverse().transformPoint new DOMPoint mouseX * pd,mouseY * pd
 
 export class State
 	constructor : (@name) -> @controls = {}
