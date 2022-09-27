@@ -24,10 +24,10 @@ sumRate = 0
 ################ p5 ###################
 
 window.preload = ->
-	globals.qr = loadImage 'qr.png'
-	globals.sound = loadSound 'key.mp3'
+	globals.qr = loadImage 'media\\qr.png'
+	globals.sound = loadSound 'media\\key.mp3'
 	for ltr in "KQRBN"
-		globals.chess[ltr] = loadImage "chess\\#{ltr}.png"
+		globals.chess[ltr] = loadImage "media\\chess\\#{ltr}.png"
 
 window.windowResized = -> resizeCanvas innerWidth, innerHeight
 
