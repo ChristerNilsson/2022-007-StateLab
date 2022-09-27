@@ -1,8 +1,3 @@
-assert = (a,b) ->
-	a = JSON.stringify a 
-	b = JSON.stringify b
-	console.log if a==b then "ok" else "#{a} != #{b}"
-
 export globals = {}
 
 globals.HOUR   = 60*60*60 # tertier
@@ -17,6 +12,14 @@ globals.states = {}
 globals.settings  = {}
 globals.bits = {}
 globals.backup = null
+
+globals.tw = 0
+globals.qr = null
+globals.sound = null
+globals.currState = null
+globals.diag = 0
+globals.os = ''
+globals.chess = null
 
 export clone = (x) -> JSON.parse JSON.stringify x
 
