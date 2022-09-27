@@ -45,7 +45,7 @@ assert '1m1t', pretty 3601
 assert '2s3t', pretty 123
 assert '60m30s', pretty 60*60*60+30*60
 
-export prettyPair = (a,b) -> 
+prettyPair = (a,b) -> 
 	separator = if pretty(b) != '' then ' + ' else ''
 	pretty(a) + separator + pretty(b)
 assert '1m1t + 2s3t', prettyPair 3601,123

@@ -158,12 +158,6 @@ export class CAdv extends Control
 		text @text,0,0.2
 		pop()
 
-	# inside : (x,y) ->
-	# 	s = [height/width,width/height][globals.TOGGLE]
-	# 	w = @w * s
-	# 	h = @h
-	# 	-w/2 <= x-@x <= w/2 and -h/2 <= y-@y <= h/2
-
 	reader : -> if @flipper then @read @bits,@index else @read @bits,@text
 	click : -> if @flipper then @clk @bits,@index else @clk @bits,@text
 
