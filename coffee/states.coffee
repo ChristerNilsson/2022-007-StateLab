@@ -95,15 +95,12 @@ export class SBasic extends State
 		y = [32,41,50,59,68,77,86,95]
 		diam = 8
 
-		@controls.orange = new CColor 50, 2.5,'orange'# ,getOrange
-		@controls.white  = new CColor 50, 9.5,'white'# , getWhite
-		@controls.green  = new CColor 50,16.5,'green'# , getGreen
+		@controls.orange = new CColor 50, 2.5,'orange'
+		@controls.white  = new CColor 50, 9.5,'white'
+		@controls.green  = new CColor 50,16.5,'green'
 
-		@controls.reflection = new CDead  x[0],20,'reflection'
-		@controls.bonus      = new CDead  x[1],20,'bonus'
-
-		@controls.M          = new CDead  x[0], 25, 'minutes'
-		@controls.s          = new CDead  x[1], 25, 'seconds'
+		@controls.reflection = new CDead  x[0],23,"reflection\nminutes"
+		@controls.bonus      = new CDead  x[1],23,"bonus\nseconds"
 
 		gbm = globals.bits.minutes
 		for i in range 5
@@ -134,9 +131,9 @@ export class SAdv extends State
 		@controls.white      = new CColor 50, 9.5,'white'
 		@controls.green      = new CColor 50,16.5,'green'
 
-		@controls.reflection = new CDead  25,21,'reflection'
-		@controls.bonus      = new CDead  50,21,'bonus'
-		@controls.hcp        = new CDead  75,21,'handicap'
+		@controls.reflection = new CDead  25,25,"reflection\nminutes"
+		@controls.bonus      = new CDead  50,25,"bonus\nseconds"
+		@controls.hcp        = new CDead  75,25,"handicap\ntertier"
 
 		y = 95
 
@@ -166,10 +163,9 @@ export class SAdv extends State
 			xsize = 100/4
 			ysize = 100/12
 			xoff = xsize
-			yoff = 33+2
+			yoff = 35
 			diam = 7
 			gb = globals.bits
-			@controls[letter] = new CDead xoff+xsize*i, 26+1, 'minutes seconds tertier'.split(' ')[i]
 			for j in range 7
 				number = [1,2,4,8,15,30,60][j]
 				name = letter + number
@@ -184,7 +180,6 @@ export class S960 extends State
 		click960 = (bitar,index) =>
 			bitar.flipBit index
 			gb = globals.bits
-			# console.log gb.number960.nr
 			globals.settings.chess960 = chess960 gb.number960.nr
 			@controls.ok.visible = gb.number960.nr < 960
 
